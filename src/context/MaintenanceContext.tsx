@@ -105,6 +105,7 @@ interface MaintenanceContextType {
   unmountMold: (moldId: string, cyclesRun: number, technician: string, notes?: string) => void;
 
   // Persistence & Backup
+  exportBackupPdf: () => void;
   exportBackupJson: () => void;
   importBackupJson: (jsonData: string) => boolean;
   resetToDemoData: () => void;
@@ -714,6 +715,277 @@ export const MaintenanceProvider: React.FC<{ children: ReactNode }> = ({ childre
   };
 
   // Backup & Restore
+  const exportBackupPdf = () => {
+    const printDate = new Date().toLocaleString('es-ES', { dateStyle: 'full', timeStyle: 'medium' });
+    const folioCode = `RESPALDO-SGMI-${new Date().toISOString().replace(/[-:T]/g, '').slice(0, 12)}`;
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html lang="es">
+      <head>
+        <meta charset="UTF-8">
+        <title>Respaldo Integral de Planta - SGMI (${folioCode})</title>
+        <style>
+          @page {
+            size: letter portrait;
+            margin: 10mm;
+          }
+          * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+          body { color: #0f172a; background: #fff; font-size: 9.5px; line-height: 1.35; padding: 12px; }
+          .header { border-bottom: 2px solid #0f172a; padding-bottom: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+          .logo-box { width: 44px; height: 44px; border: 2px solid #0f172a; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; background: #e0f2fe; color: #0369a1; margin-right: 10px; border-radius: 4px; }
+          .header-title h1 { font-size: 13px; font-weight: 800; text-transform: uppercase; color: #0f172a; margin-bottom: 2px; }
+          .header-title p { font-size: 9px; color: #475569; }
+          .header-title .author { font-size: 9.5px; font-weight: 700; color: #b45309; margin-top: 2px; }
+          .doc-info { text-align: right; font-size: 8.5px; color: #334155; }
+          .doc-info strong { display: block; font-size: 10px; color: #0f172a; text-transform: uppercase; }
+          
+          .kpi-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+          .kpi-card { border: 1px solid #cbd5e1; padding: 6px; border-radius: 6px; text-align: center; background: #f8fafc; }
+          .kpi-card .val { font-size: 14px; font-weight: 800; color: #0891b2; }
+          .kpi-card .lbl { font-size: 8px; font-weight: 700; text-transform: uppercase; color: #64748b; }
+          
+          .section-title { font-size: 10px; font-weight: 800; text-transform: uppercase; background: #0f172a; color: #fff; padding: 4px 8px; margin-top: 10px; margin-bottom: 5px; border-radius: 3px; display: flex; justify-content: space-between; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 8.5px; }
+          th { background: #f1f5f9; border: 1px solid #94a3b8; padding: 4px; text-align: left; font-weight: 700; font-size: 8px; text-transform: uppercase; color: #1e293b; }
+          td { border: 1px solid #cbd5e1; padding: 3px 4px; vertical-align: top; }
+          tr:nth-child(even) { background: #f8fafc; }
+          
+          .badge { display: inline-block; padding: 1px 5px; border-radius: 3px; font-size: 7.5px; font-weight: 700; text-transform: uppercase; }
+          .badge-green { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+          .badge-red { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+          .badge-yellow { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+          
+          .firmas { margin-top: 22px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; page-break-inside: avoid; }
+          .firma-box { border-top: 1.5px solid #0f172a; text-align: center; padding-top: 5px; }
+          .firma-box strong { font-size: 9px; display: block; color: #0f172a; }
+          .firma-box span { font-size: 8px; color: #64748b; }
+          
+          .footer-note { text-align: center; font-size: 8px; color: #64748b; margin-top: 16px; border-top: 1px dashed #cbd5e1; padding-top: 5px; }
+          
+          @media print {
+            body { padding: 0; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div style="display: flex; align-items: center;">
+            <div class="logo-box">SGMI</div>
+            <div class="header-title">
+              <h1>Respaldo Integral de Mantenimiento de Planta</h1>
+              <p>Inyección, Soplado y Servicios Auxiliares (Chiller, Compresor, Planta Eléctrica y Moldes)</p>
+              <div class="author">Sistema elaborado por el Ingeniero Sanchez Danny</div>
+            </div>
+          </div>
+          <div class="doc-info">
+            <strong>Dossier Oficial de Auditoría</strong>
+            <div>Folio: ${folioCode}</div>
+            <div>Generado: ${printDate}</div>
+            <div>Norma: ISO 9001:2015</div>
+          </div>
+        </div>
+
+        <div class="kpi-bar">
+          <div class="kpi-card">
+            <div class="val">${kpis.disponibilidad}%</div>
+            <div class="lbl">Disponibilidad (MTBF)</div>
+          </div>
+          <div class="kpi-card">
+            <div class="val">${kpis.mttrHoras} h</div>
+            <div class="lbl">T. Medio Reparación (MTTR)</div>
+          </div>
+          <div class="kpi-card">
+            <div class="val">${kpis.equiposOperativos} / ${equipments.length}</div>
+            <div class="lbl">Equipos Operativos</div>
+          </div>
+          <div class="kpi-card">
+            <div class="val">${kpis.cumplimientoPM}%</div>
+            <div class="lbl">Cumplimiento PM</div>
+          </div>
+        </div>
+
+        <!-- Equipos -->
+        <div class="section-title">
+          <span>1. Matriz de Activos y Estado Operativo de Maquinaria</span>
+          <span>${equipments.length} Activos Registrados</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 10%;">TAG</th>
+              <th style="width: 25%;">Nombre del Equipo</th>
+              <th style="width: 14%;">Tipo / Sistema</th>
+              <th style="width: 20%;">Marca / Modelo</th>
+              <th style="width: 16%;">Ubicación</th>
+              <th style="width: 8%;">Horas</th>
+              <th style="width: 7%;">Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${equipments.map(e => `
+              <tr>
+                <td><strong>${e.tag}</strong></td>
+                <td>${e.name}</td>
+                <td>${e.type}</td>
+                <td>${e.brand} ${e.model || ''}</td>
+                <td>${e.location}</td>
+                <td>${e.currentHours.toLocaleString()}</td>
+                <td><span class="badge ${e.status === 'operativo' ? 'badge-green' : e.status === 'en_mantenimiento' ? 'badge-yellow' : 'badge-red'}">${e.status}</span></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+
+        <!-- Órdenes de Trabajo -->
+        <div class="section-title">
+          <span>2. Registro de Órdenes de Trabajo (Formato ISO 9001:2015 F-MT-01)</span>
+          <span>${workOrders.length} Órdenes Registradas</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 12%;">Código OT</th>
+              <th style="width: 10%;">TAG Equipo</th>
+              <th style="width: 28%;">Tarea / Intervención</th>
+              <th style="width: 10%;">Tipo</th>
+              <th style="width: 12%;">Fecha Prog.</th>
+              <th style="width: 10%;">Estado</th>
+              <th style="width: 18%;">Técnico Asignado</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${workOrders.map(o => `
+              <tr>
+                <td><strong>${o.code}</strong></td>
+                <td>${o.equipmentTag}</td>
+                <td>${o.title}</td>
+                <td>${o.type}</td>
+                <td>${o.scheduledDate}</td>
+                <td><span class="badge ${o.status === 'Completada' ? 'badge-green' : o.status === 'En_Proceso' ? 'badge-yellow' : 'badge-red'}">${o.status}</span></td>
+                <td>${o.assignedTechnician}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+
+        <!-- Inventario de Repuestos -->
+        <div class="section-title">
+          <span>3. Almacén Técnico y Existencias de Repuestos Críticos</span>
+          <span>${inventory.length} Ítems en Kárdex</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 12%;">SKU / Código</th>
+              <th style="width: 32%;">Descripción del Repuesto</th>
+              <th style="width: 14%;">Sistema</th>
+              <th style="width: 12%;">Stock Actual</th>
+              <th style="width: 10%;">Mínimo</th>
+              <th style="width: 8%;">Unidad</th>
+              <th style="width: 12%;">Estado Stock</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${inventory.map(i => `
+              <tr>
+                <td><strong>${i.code}</strong></td>
+                <td>${i.name}</td>
+                <td>${i.system}</td>
+                <td><strong>${i.stockCurrent}</strong></td>
+                <td>${i.stockMin}</td>
+                <td>${i.unit}</td>
+                <td><span class="badge ${i.stockCurrent <= i.stockMin ? 'badge-red' : 'badge-green'}">${i.stockCurrent <= i.stockMin ? 'REORDEN' : 'OK'}</span></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+
+        <!-- Moldes -->
+        <div class="section-title">
+          <span>4. Registro de Moldes, Torques y Ciclos de Producción</span>
+          <span>190 Nm Par de Apriete Verificado</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 12%;">TAG Molde</th>
+              <th style="width: 28%;">Nombre / Cavidades</th>
+              <th style="width: 22%;">Ubicación / Máquina</th>
+              <th style="width: 18%;">Torque Apriete</th>
+              <th style="width: 20%;">Ciclos Acumulados</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${equipments.filter(e => e.type === 'molde').map(m => `
+              <tr>
+                <td><strong>${m.tag}</strong></td>
+                <td>${m.name}</td>
+                <td>${m.location}</td>
+                <td>190 Nm (Conforme)</td>
+                <td>${m.currentHours.toLocaleString()} / ${(m.maxCyclesBeforeOverhaul || 200000).toLocaleString()} tiros</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+
+        <!-- Firmas de Validación -->
+        <div class="firmas">
+          <div class="firma-box">
+            <strong>Técnico de Mantenimiento</strong>
+            <span>Generador del Respaldo Técnico</span>
+          </div>
+          <div class="firma-box">
+            <strong>Supervisor de Calidad ISO 9001</strong>
+            <span>Auditoría y Verificación</span>
+          </div>
+          <div class="firma-box">
+            <strong>Ingeniero Sanchez Danny</strong>
+            <span>Jefe de Mantenimiento / Aprobación</span>
+          </div>
+        </div>
+
+        <div class="footer-note">
+          SGMI • Sistema elaborado por el Ingeniero Sanchez Danny • Respaldo Documental en PDF para Auditoría y Archivo Técnico • ISO 9001:2015
+        </div>
+      </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.open();
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => {
+        printWindow.print();
+      }, 400);
+    } else {
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = '0';
+      document.body.appendChild(iframe);
+      const doc = iframe.contentWindow?.document;
+      if (doc) {
+        doc.open();
+        doc.write(htmlContent);
+        doc.close();
+        iframe.contentWindow?.focus();
+        setTimeout(() => {
+          iframe.contentWindow?.print();
+          setTimeout(() => document.body.removeChild(iframe), 2500);
+        }, 400);
+      }
+    }
+
+    addToast('success', 'Respaldo PDF Preparado', 'Se abrió la ventana de impresión. Selecciona "Guardar como PDF".');
+  };
+
   const exportBackupJson = () => {
     const backupData = {
       version: '2.0.0',
@@ -856,6 +1128,7 @@ export const MaintenanceProvider: React.FC<{ children: ReactNode }> = ({ childre
         resolveFailureIncident,
         mountMold,
         unmountMold,
+        exportBackupPdf,
         exportBackupJson,
         importBackupJson,
         resetToDemoData,

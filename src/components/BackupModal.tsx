@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { useMaintenance } from '../context/MaintenanceContext';
-import { X, Download, Upload, RotateCcw, FileText, CheckCircle2, ShieldCheck, Database, FileCode, Copy, Check, ExternalLink } from 'lucide-react';
+import { X, Download, Upload, FileText, ShieldCheck, Database, FileCode, Copy, Check, ExternalLink, Printer } from 'lucide-react';
 
 interface BackupModalProps {
   isOpen: boolean;
@@ -9,9 +9,8 @@ interface BackupModalProps {
 
 export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose }) => {
   const {
-    exportBackupJson,
+    exportBackupPdf,
     importBackupJson,
-    resetToDemoData,
     exportWorkOrdersToCsv,
     exportInventoryToCsv
   } = useMaintenance();
@@ -97,35 +96,40 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose }) => 
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-            {/* Export JSON */}
-            <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 flex flex-col justify-between gap-3">
+            {/* Export PDF */}
+            <div className="p-4 rounded-xl bg-gradient-to-br from-cyan-950/40 via-slate-900 to-slate-900 border border-cyan-500/30 flex flex-col justify-between gap-3 shadow-md">
               <div>
-                <h4 className="font-semibold text-slate-200 flex items-center gap-2">
-                  <Download className="w-4 h-4 text-cyan-400" />
-                  Exportar Backup Completo
-                </h4>
-                <p className="text-xs text-slate-400 mt-1">
-                  Descarga un archivo JSON con todos los equipos, órdenes, consumos de inventario e historial.
+                <div className="flex items-center justify-between mb-1">
+                  <h4 className="font-semibold text-cyan-300 flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-cyan-400" />
+                    Exportar Respaldo en PDF
+                  </h4>
+                  <span className="text-[10px] font-bold bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded-full border border-cyan-500/30">
+                    Formato PDF
+                  </span>
+                </div>
+                <p className="text-xs text-slate-300 mt-1">
+                  Genera el dossier técnico oficial con matriz de activos, órdenes de trabajo, almacén y moldes para guardar como archivo PDF.
                 </p>
               </div>
               <button
-                onClick={exportBackupJson}
-                className="w-full py-2 px-3 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold text-xs transition-colors flex items-center justify-center gap-1.5"
+                onClick={exportBackupPdf}
+                className="w-full py-2.5 px-3 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold text-xs transition-colors flex items-center justify-center gap-2 shadow-md shadow-cyan-600/20"
               >
-                <Download className="w-4 h-4" />
-                Descargar JSON
+                <Printer className="w-4 h-4" />
+                Exportar Respaldo (PDF)
               </button>
             </div>
 
-            {/* Import JSON */}
+            {/* Import Data */}
             <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 flex flex-col justify-between gap-3">
               <div>
                 <h4 className="font-semibold text-slate-200 flex items-center gap-2">
                   <Upload className="w-4 h-4 text-emerald-400" />
-                  Restaurar desde JSON
+                  Restaurar Respaldo
                 </h4>
                 <p className="text-xs text-slate-400 mt-1">
-                  Carga un respaldo previo para recuperar todas tus órdenes y configuraciones anteriores.
+                  Carga un respaldo previo para recuperar todas tus órdenes, equipos y configuraciones anteriores.
                 </p>
               </div>
               <input
@@ -137,10 +141,10 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose }) => 
               />
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs border border-slate-700 transition-colors flex items-center justify-center gap-1.5"
+                className="w-full py-2.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs border border-slate-700 transition-colors flex items-center justify-center gap-1.5"
               >
                 <Upload className="w-4 h-4 text-emerald-400" />
-                Seleccionar Archivo
+                Cargar Archivo Respaldo
               </button>
             </div>
           </div>
@@ -207,23 +211,6 @@ export const BackupModal: React.FC<BackupModalProps> = ({ isOpen, onClose }) => 
                 Exportar Almacén (.CSV)
               </button>
             </div>
-          </div>
-
-          {/* Reset Demo Data */}
-          <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-xs">
-            <span className="text-slate-400">¿Deseas reiniciar los datos de demostración de planta?</span>
-            <button
-              onClick={() => {
-                if (window.confirm('¿Confirmas que deseas reiniciar todos los datos a la demostración inicial?')) {
-                  resetToDemoData();
-                  onClose();
-                }
-              }}
-              className="px-3 py-1.5 rounded-lg text-rose-400 hover:bg-rose-500/10 font-semibold transition-colors flex items-center gap-1"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              Reiniciar Demo
-            </button>
           </div>
         </div>
 
