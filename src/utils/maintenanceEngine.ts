@@ -25,33 +25,87 @@ export function calculateKPIs(
   const pendingOrders = workOrders.filter(o => o.status === 'Pendiente').length;
   const inProgressOrders = workOrders.filter(o => o.status === 'En_Proceso').length;
   const completedOrders = workOrders.filter(o => o.status === 'Completada').length;
-  const totalRelevantOrders = pendingOrders + inProgressOrders + completedOrders;
 
-  const cumplimientoPM = totalRelevantOrders > 0 
-    ? Math.round((completedOrders / totalRelevantOrders) * 100) 
+  // Work order types breakdown
+  const pmOrders = workOrders.filter(o => o.type === 'Preventivo');
+  const completedPmOrders = pmOrders.filter(o => o.status === 'Completada').length;
+  const cumplimientoPM = pmOrders.length > 0 
+    ? Math.round((completedPmOrders / pmOrders.length) * 100) 
     : 100;
 
-  // Unplanned stops (corrective orders or failures that stopped equipment)
-  const paradasNoPlanificadas = workOrders.filter(
+  // Unplanned stops / failure incidents
+  const correctiveOrders = workOrders.filter(
     o => o.type === 'Correctivo' || o.priority === 'Critica'
-  ).length;
+  );
+  const paradasNoPlanificadas = Math.max(
+    correctiveOrders.length,
+    failureIncidents.filter(f => f.severity === 'Critica' || f.status !== 'resuelta').length
+  );
 
-  // Real or estimated MTTR calculation (Mean Time to Repair in hours)
-  const completedCorrectives = workOrders.filter(o => o.status === 'Completada' && (o.realDurationHours || 0) > 0);
-  const totalRepairHours = completedCorrectives.reduce((sum, o) => sum + (o.realDurationHours || 1.5), 0);
+  // Real Downtime Calculation (Tiempo de Parada en Horas)
+  const downtimeFromOrders = workOrders.reduce((sum, o) => {
+    if (o.downtimeHours && o.downtimeHours > 0) return sum + o.downtimeHours;
+    if (o.type === 'Correctivo' || o.priority === 'Critica') {
+      return sum + (o.realDurationHours || 2.0);
+    }
+    return sum;
+  }, 0);
+
+  const downtimeFromIncidents = failureIncidents.reduce((sum, f) => {
+    if (f.workOrderId) return sum; // Avoid double counting if already linked to OT
+    return sum + (f.downtimeHours || (f.severity === 'Critica' ? 3.0 : f.severity === 'Alta' ? 1.5 : 0.5));
+  }, 0);
+
+  const tiempoTotalParadaHoras = Number((downtimeFromOrders + downtimeFromIncidents).toFixed(1));
+
+  // Real Repair / Execution Time (Horas de Reparación y Mantenimiento)
+  const completedWithHours = workOrders.filter(o => o.status === 'Completada' && (o.realDurationHours || 0) > 0);
+  const tiempoTotalReparacionHoras = Number(
+    workOrders.reduce((sum, o) => sum + (o.realDurationHours || 0), 0).toFixed(1)
+  );
+
+  // MTTR (Mean Time to Repair in hours)
+  const completedCorrectives = workOrders.filter(
+    o => o.status === 'Completada' && (o.type === 'Correctivo' || o.priority === 'Critica') && (o.realDurationHours || 0) > 0
+  );
+  const correctiveRepairHours = completedCorrectives.reduce((sum, o) => sum + (o.realDurationHours || 0), 0);
   const mttrHoras = completedCorrectives.length > 0 
-    ? Number((totalRepairHours / completedCorrectives.length).toFixed(1)) 
-    : 2.1;
+    ? Number((correctiveRepairHours / completedCorrectives.length).toFixed(1)) 
+    : completedWithHours.length > 0
+    ? Number((tiempoTotalReparacionHoras / completedWithHours.length).toFixed(1))
+    : 1.8;
 
-  // MTBF Calculation (Mean Time Between Failures)
-  // Assuming plant operating baseline of 720 hours/month per machine
-  const totalPlantOperatingHours = totalEquipments * 720;
+  // Fleet Operating Hours & MTBF Calculation (Mean Time Between Failures)
+  // Fleet operational hours accumulated in machinery
+  const fleetHoursTotal = equipments.reduce((sum, e) => sum + (e.currentHours || 0), 0) || (totalEquipments * 720);
   const failureCount = paradasNoPlanificadas > 0 ? paradasNoPlanificadas : 1;
-  const mtbfHoras = Math.round(totalPlantOperatingHours / failureCount);
+  const netOperatingHours = Math.max(0, fleetHoursTotal - tiempoTotalParadaHoras);
+  const mtbfHoras = Math.round(netOperatingHours / failureCount);
 
-  // Overall Availability % = (Operating / Total) adjusted by downtime
-  const rawAvailability = (operativeEquipments / totalEquipments) * 100;
-  const disponibilidad = Number(Math.min(99.9, Math.max(80.0, rawAvailability)).toFixed(1));
+  // Real Operational Availability % = (Operating Time / Total Required Operating Time) * 100
+  // Considering active equipment ratio and downtime
+  const equipmentAvailabilityRatio = operativeEquipments / totalEquipments;
+  const timeAvailabilityRatio = fleetHoursTotal > 0 
+    ? (fleetHoursTotal - tiempoTotalParadaHoras) / fleetHoursTotal 
+    : 0.985;
+  const rawAvailability = (equipmentAvailabilityRatio * 0.4 + timeAvailabilityRatio * 0.6) * 100;
+  const disponibilidad = Number(Math.min(99.9, Math.max(75.0, rawAvailability)).toFixed(1));
+
+  // Total Spare Parts & Consumables Cost
+  const costoTotalRepuestos = Number(
+    workOrders.reduce((sum, o) => {
+      const partsSum = o.partsConsumed?.reduce((pSum, p) => pSum + (p.quantity * (p.unitCost || 0)), 0) || 0;
+      return sum + partsSum;
+    }, 0).toFixed(2)
+  );
+
+  // Preventivo vs Correctivo Ratio
+  const totalEvaluatedOrders = pmOrders.length + correctiveOrders.length;
+  const ratioPreventivoCorrectivo = totalEvaluatedOrders > 0
+    ? Math.round((pmOrders.length / totalEvaluatedOrders) * 100)
+    : 85;
+
+  const horasHombreTotal = tiempoTotalReparacionHoras;
 
   return {
     disponibilidad,
@@ -62,10 +116,15 @@ export function calculateKPIs(
     otsPendientes: pendingOrders,
     otsEnProceso: inProgressOrders,
     otsCompletadas: completedOrders,
-    repuestosBajoStock: 0, // to be filled with inventory check
+    repuestosBajoStock: 0,
     equiposOperativos: operativeEquipments,
     equiposEnMantenimiento: inMaintenanceEquipments,
-    equiposParados: stoppedEquipments
+    equiposParados: stoppedEquipments,
+    tiempoTotalParadaHoras,
+    tiempoTotalReparacionHoras,
+    costoTotalRepuestos,
+    ratioPreventivoCorrectivo,
+    horasHombreTotal
   };
 }
 
@@ -91,9 +150,17 @@ export function generateWorkOrdersForPeriod(
 
   // For each template and applicable equipment, calculate schedule dates
   templates.forEach(tpl => {
-    const applicableEqs = equipments.filter(eq => 
+    // If inactive, skip
+    if (tpl.activeStatus === false) return;
+
+    let applicableEqs = equipments.filter(eq => 
       tpl.applicableEquipmentTypes.includes(eq.type) && eq.status !== 'almacenado'
     );
+
+    // If template is restricted to a specific equipment tag
+    if (tpl.specificEquipmentTag && tpl.specificEquipmentTag !== 'TODOS') {
+      applicableEqs = applicableEqs.filter(eq => eq.tag === tpl.specificEquipmentTag);
+    }
 
     const stepDays = FREQUENCY_DAYS[tpl.frecuencia] || 30;
 
@@ -113,6 +180,26 @@ export function generateWorkOrdersForPeriod(
         if (!alreadyExists) {
           const codeStr = `F-MT-01-${String(counter).padStart(3, '0')}`;
           
+          // Use structured SAP operations if available, otherwise general steps
+          const steps = (tpl.operations && tpl.operations.length > 0)
+            ? tpl.operations.map(op => ({
+                step: `[Op. ${op.opNumber}] ${op.description}${op.referenceStandard ? ` [Ref: ${op.referenceStandard}]` : ''}`,
+                completed: false
+              }))
+            : tpl.pasos.map(p => ({ step: p, completed: false }));
+
+          const techByCenter: Record<string, string> = {
+            'MEC-01': 'Javier Peña (Mecánico)',
+            'ELE-01': 'Andrés Rivas (Electricista)',
+            'HID-01': 'Carlos Méndez (Hidráulica)',
+            'NEU-01': 'Carlos Méndez (Neumática)',
+            'REF-01': 'Luis Morales (Refrigeración)',
+            'MAT-01': 'Roberto Gómez (Matricero)',
+            'INS-01': 'Miguel Torres (Automatización)',
+            'LUB-01': 'Técnico de Lubricación'
+          };
+          const assignedTech = tpl.workCenter ? (techByCenter[tpl.workCenter] || 'Técnico Especialista') : 'Técnico de Turno';
+
           newOrders.push({
             id: `ot-gen-${Date.now()}-${counter}`,
             code: codeStr,
@@ -128,14 +215,14 @@ export function generateWorkOrdersForPeriod(
             system: tpl.system,
             frequency: tpl.frecuencia,
             estimatedTime: tpl.tiempo,
-            assignedTechnician: 'Técnico de Turno',
+            assignedTechnician: assignedTech,
             verifierSupervisor: 'Supervisor de Mantenimiento',
             plantManager: 'Jefe de Planta',
-            procedureSteps: tpl.pasos.map(p => ({ step: p, completed: false })),
+            procedureSteps: steps,
             toolsUsed: [...tpl.herramientas],
             suppliesUsed: [...tpl.insumos],
             partsConsumed: [],
-            observations: `Generado automáticamente según Plan Maestro de Mantenimiento ISO 9001 (${tpl.frecuencia}).`,
+            observations: `Generado según Hoja de Ruta SAP PM ${tpl.code || tpl.id} (${tpl.frecuencia} - Puesto: ${tpl.workCenter || 'MEC-01'}).`,
             createdAt: new Date().toISOString().split('T')[0]
           });
 

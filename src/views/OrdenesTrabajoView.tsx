@@ -17,6 +17,8 @@ import {
   CheckSquare
 } from 'lucide-react';
 
+import { exportWorkOrderSheetsPdf } from '../utils/pdfExport';
+
 interface OrdenesTrabajoViewProps {
   onOpenNewOt: () => void;
   onExecuteOt: (order: WorkOrder) => void;
@@ -70,8 +72,8 @@ export const OrdenesTrabajoView: React.FC<OrdenesTrabajoViewProps> = ({ onOpenNe
     generateBatchOrders(startDateInput, periodMonths);
   };
 
-  const handlePrint = () => {
-    window.print();
+  const handlePrintPdf = (date?: string) => {
+    exportWorkOrderSheetsPdf(groupedByDate, date);
   };
 
   return (
@@ -102,11 +104,12 @@ export const OrdenesTrabajoView: React.FC<OrdenesTrabajoViewProps> = ({ onOpenNe
               Nueva OT Manual
             </button>
             <button
-              onClick={handlePrint}
-              className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-md shadow-purple-600/20 transition-colors flex items-center gap-1.5"
+              onClick={() => handlePrintPdf()}
+              className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-md shadow-purple-600/20 transition-colors flex items-center gap-1.5 cursor-pointer"
+              title="Exportar e imprimir todas las Hojas Carta F-MT-01 en formato PDF"
             >
               <Printer className="w-4 h-4" />
-              Imprimir Hojas Carta
+              Imprimir Hojas Carta (PDF)
             </button>
           </div>
         </div>
@@ -291,14 +294,23 @@ export const OrdenesTrabajoView: React.FC<OrdenesTrabajoViewProps> = ({ onOpenNe
 
           return (
             <div key={dateStr} className="hoja-carta relative">
-              {/* Maximize Button */}
-              <button
-                onClick={() => setFullscreenSheetDate(dateStr)}
-                className="absolute top-3 right-3 bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 text-xs px-2.5 py-1 rounded flex items-center gap-1 no-print shadow cursor-pointer"
-                title="Ampliar a pantalla completa"
-              >
-                <Maximize2 className="w-3.5 h-3.5" /> Ampliar
-              </button>
+              {/* Action Buttons */}
+              <div className="absolute top-3 right-3 flex items-center gap-2 no-print">
+                <button
+                  onClick={() => handlePrintPdf(dateStr)}
+                  className="bg-purple-800 hover:bg-purple-700 text-white text-xs px-2.5 py-1 rounded flex items-center gap-1 shadow cursor-pointer font-semibold"
+                  title="Exportar esta hoja a PDF"
+                >
+                  <Printer className="w-3.5 h-3.5" /> PDF
+                </button>
+                <button
+                  onClick={() => setFullscreenSheetDate(dateStr)}
+                  className="bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 text-xs px-2.5 py-1 rounded flex items-center gap-1 shadow cursor-pointer"
+                  title="Ampliar a pantalla completa"
+                >
+                  <Maximize2 className="w-3.5 h-3.5" /> Ampliar
+                </button>
+              </div>
 
               {/* Document Header */}
               <div className="carta-header">

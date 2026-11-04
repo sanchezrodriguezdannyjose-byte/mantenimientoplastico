@@ -442,12 +442,17 @@
         <!-- ================= TAB 3: PLANES MAESTROS ================= -->
         <section id="tab-planes" class="tab-content">
             <div class="card" style="margin-bottom: 1.5rem;">
-                <div class="card-header-title">
-                    <i class="fa-solid fa-list-check" style="color: var(--accent-cyan); font-size: 1.25rem;"></i>
-                    <h2>Plan de Mantenimiento Preventivo Detallado (Máquinas y Auxiliares)</h2>
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 6px;">
+                    <div class="card-header-title">
+                        <i class="fa-solid fa-list-check" style="color: var(--accent-cyan); font-size: 1.25rem;"></i>
+                        <h2>Plan de Mantenimiento Preventivo Detallado (Estructura SAP PM)</h2>
+                    </div>
+                    <button class="btn-action btn-cyan" onclick="abrirModalNuevoPlanSap()">
+                        <i class="fa-solid fa-plus-circle"></i> + Nueva Actividad Preventiva (SAP PM)
+                    </button>
                 </div>
                 <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px;">
-                    Despliega cada especialidad para revisar las rutinas normadas, herramientas, insumos y criterios de aceptación. Puedes programar una OT directa desde cada tarea.
+                    Estructura homologada SAP PM (Work Centers, Task Lists, Clases PM01-PM06 y Estrategias). Despliega cada especialidad para auditar operaciones, tiempos y repuestos BOM, o genera OTs directas.
                 </p>
             </div>
             <div id="contenedor-planes-acordeones">
@@ -1218,6 +1223,160 @@
             <div class="modal-footer">
                 <button type="button" class="btn-action btn-slate" onclick="cerrarModales()">Cerrar</button>
             </div>
+        <!-- ===== MODAL 7: NUEVA ACTIVIDAD PREVENTIVA (SAP PM) ===== -->
+    <div class="modal-overlay" id="modal-nuevo-plan-sap">
+        <div class="modal-card" style="max-width: 800px; width: 95%;">
+            <div class="modal-header">
+                <div>
+                    <h3><i class="fa-solid fa-list-check" style="color:var(--accent-cyan); margin-right:8px;"></i> Crear / Configurar Plan Preventivo (SAP PM)</h3>
+                    <p style="font-size: 0.72rem; color: var(--accent-cyan); margin-top: 2px;">Sistema elaborado por el Ingeniero Sanchez Danny | Estructura Oficial SAP Plant Maintenance</p>
+                </div>
+                <button class="modal-close" onclick="cerrarModales()">&times;</button>
+            </div>
+            <form onsubmit="guardarNuevoPlanSap(event)">
+                <div class="modal-body" style="display: flex; flex-direction: column; gap: 0.9rem; max-height: 70vh; overflow-y: auto;">
+                    
+                    <!-- Fila 1: Código Hoja de Ruta & Título -->
+                    <div class="grid-2" style="gap: 10px;">
+                        <div>
+                            <label style="font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 3px; font-size: 0.75rem;">Código SAP / Hoja de Ruta (Task List):</label>
+                            <input type="text" id="nps-code" class="form-control" placeholder="Ej. HR-INY-010" required style="font-family:'JetBrains Mono'; text-transform:uppercase;">
+                        </div>
+                        <div>
+                            <label style="font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 3px; font-size: 0.75rem;">Sistema Técnico / Emplazamiento:</label>
+                            <select id="nps-sistema" class="form-control" required>
+                                <option value="Inyección">Inyección</option>
+                                <option value="Soplado">Soplado</option>
+                                <option value="Mecánico">Mecánico</option>
+                                <option value="Hidráulico">Hidráulico</option>
+                                <option value="Eléctrico">Eléctrico</option>
+                                <option value="Neumático">Neumático</option>
+                                <option value="Chiller">Chiller</option>
+                                <option value="Compresor">Compresor</option>
+                                <option value="Planta Eléctrica">Planta Eléctrica</option>
+                                <option value="Moldes">Moldes</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label style="font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 3px; font-size: 0.75rem;">Título Técnico de la Actividad:</label>
+                        <input type="text" id="nps-titulo" class="form-control" placeholder="Ej. Calibración de transductores lineales de cierre e inyección" required>
+                    </div>
+
+                    <!-- Fila 2: Puesto de Trabajo & Clase de Actividad PM -->
+                    <div class="grid-2" style="gap: 10px;">
+                        <div>
+                            <label style="font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 3px; font-size: 0.75rem;">Puesto de Trabajo Responsable (Work Center):</label>
+                            <select id="nps-workcenter" class="form-control" required>
+                                <option value="MEC-01">MEC-01 (Mecánica General & Rodilleras)</option>
+                                <option value="ELE-01">ELE-01 (Electricidad, Electrónica & PLC)</option>
+                                <option value="HID-01">HID-01 (Hidráulica Proporcional & Bombas)</option>
+                                <option value="NEU-01">NEU-01 (Neumática & FRL)</option>
+                                <option value="REF-01">REF-01 (Refrigeración Chiller & Termorregulación)</option>
+                                <option value="MAT-01">MAT-01 (Matricería & Ajuste de Moldes)</option>
+                                <option value="LUB-01">LUB-01 (Tribología & Lubricación Centralizada)</option>
+                                <option value="INS-01">INS-01 (Instrumentación & Termopares)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 3px; font-size: 0.75rem;">Clase de Actividad SAP PM:</label>
+                            <select id="nps-acttype" class="form-control" required>
+                                <option value="PM01">PM01 - Mantenimiento Preventivo Sistemático</option>
+                                <option value="PM02">PM02 - Inspección Técnica y Diagnóstico</option>
+                                <option value="PM03">PM03 - Lubricación y Engrase</option>
+                                <option value="PM04">PM04 - Calibración y Metrología</option>
+                                <option value="PM05">PM05 - Overhaul y Reacondicionamiento Mayor</option>
+                                <option value="PM06">PM06 - Seguridad y Consignación LOTO</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Fila 3: Estrategia de Disparo & Frecuencia -->
+                    <div class="grid-3" style="gap: 10px;">
+                        <div>
+                            <label style="font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 3px; font-size: 0.75rem;">Estrategia de Disparo:</label>
+                            <select id="nps-estrategia" class="form-control" required>
+                                <option value="tiempo">Por Tiempo Calendario</option>
+                                <option value="contador_horas">Por Contador de Horas de Marcha</option>
+                                <option value="contador_ciclos">Por Contador de Ciclos (Moldes)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 3px; font-size: 0.75rem;">Frecuencia / Intervalo:</label>
+                            <select id="nps-frecuencia" class="form-control" required>
+                                <option value="Diario">Diario</option>
+                                <option value="Semanal">Semanal</option>
+                                <option value="Mensual" selected>Mensual</option>
+                                <option value="Trimestral">Trimestral</option>
+                                <option value="Semestral">Semestral</option>
+                                <option value="Anual">Anual</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 3px; font-size: 0.75rem;">Tiempo Estimado:</label>
+                            <input type="text" id="nps-tiempo" class="form-control" placeholder="Ej. 1.5 Horas" value="1.5 Horas" required>
+                        </div>
+                    </div>
+
+                    <!-- Fila 4: Condición de la Máquina & Permisos -->
+                    <div class="grid-2" style="gap: 10px;">
+                        <div>
+                            <label style="font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 3px; font-size: 0.75rem;">Condición Requerida del Activo:</label>
+                            <select id="nps-condicion" class="form-control" required>
+                                <option value="parada_loto">Parada de Máquina con Consignación LOTO</option>
+                                <option value="en_marcha">En Marcha / Operación Normal</option>
+                                <option value="indiferente">Indiferente / Flexible</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 3px; font-size: 0.75rem;">Permisos de Seguridad Requeridos:</label>
+                            <input type="text" id="nps-permisos" class="form-control" placeholder="Ej. LOTO, Eléctrico, Trabajo en Altura" value="Bloqueo LOTO">
+                        </div>
+                    </div>
+
+                    <!-- Fila 5: Operaciones Estructuradas (Task List) -->
+                    <div>
+                        <label style="font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 3px; font-size: 0.75rem;">
+                            Operaciones Técnicas (Hoja de Ruta - una por línea):
+                        </label>
+                        <textarea id="nps-operaciones" class="form-control" rows="3" placeholder="0010: Bloqueo de energía y despresurización hidráulica&#10;0020: Limpieza y verificación de guías lineales&#10;0030: Calibración de transductor con galga patrón (Tolerancia < 0.05mm)&#10;0040: Verificación de señales 0-10V en PLC y prueba en vacío" required></textarea>
+                    </div>
+
+                    <!-- Fila 6: Recursos, Herramientas e Insumos -->
+                    <div class="grid-3" style="gap: 10px;">
+                        <div>
+                            <label style="font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 3px; font-size: 0.75rem;">Herramientas (PRT):</label>
+                            <input type="text" id="nps-herramientas" class="form-control" placeholder="Multímetro, Galgas, Torquímetro" value="Multímetro digital, Llaves allen">
+                        </div>
+                        <div>
+                            <label style="font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 3px; font-size: 0.75rem;">Insumos / Fluidos:</label>
+                            <input type="text" id="nps-insumos" class="form-control" placeholder="Limpiador dieléctrico, Paños" value="Limpiador de contactos dieléctrico">
+                        </div>
+                        <div>
+                            <label style="font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 3px; font-size: 0.75rem;">Repuestos Almacén (BOM):</label>
+                            <input type="text" id="nps-repuestos" class="form-control" placeholder="Transductor lineal, Fusible 2A" value="Transductor Gefran 400mm">
+                        </div>
+                    </div>
+
+                    <!-- Fila 7: Criterio de Aceptación & Planificador -->
+                    <div class="grid-2" style="gap: 10px;">
+                        <div>
+                            <label style="font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 3px; font-size: 0.75rem;">Criterio de Calidad / Aceptación (ISO 9001):</label>
+                            <input type="text" id="nps-criterio" class="form-control" placeholder="Ej. Desviación de cota < 0.05 mm comprobada con pie de rey" value="Desviación máxima < 0.05 mm en recorrido total.">
+                        </div>
+                        <div>
+                            <label style="font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 3px; font-size: 0.75rem;">Grupo Planificador:</label>
+                            <input type="text" id="nps-planificador" class="form-control" value="Ingeniero Sanchez Danny" readonly style="color:var(--accent-amber); font-weight:bold;">
+                        </div>
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-action btn-slate" onclick="cerrarModales()">Cancelar</button>
+                    <button type="submit" class="btn-action btn-cyan"><i class="fa-solid fa-save"></i> Guardar Actividad Preventiva (SAP PM)</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -1433,16 +1592,82 @@
             }
         }
 
-        // --- PLANES Y FICHAS TÉCNICAS ---
-        const planesMaestros = [
-            { id: 'pm-mec', sistema: 'Mecánico', titulo: 'Verificación Mecánica, Rodillera y Paralelismo', frecuencia: 'Mensual', tiempo: '1.5 Horas', herramientas: ['Comparador de carátula', 'Grasera neumática', 'Torquímetro', 'Galgas'], insumos: ['Grasa EP-2 Base Litio', 'Paños absorbentes'], repuestos: ['Bujes de bronce'], pasos: ['Bloqueo LOTO', 'Limpieza de columnas', 'Inyectar grasa EP-2', 'Medir paralelismo < 0.1 mm', 'Prueba en vacío'], criterio: 'Desviación < 0.1 mm en 4 esquinas.' },
-            { id: 'pm-hid', sistema: 'Hidráulico', titulo: 'Filtración y Control Térmico Hidráulico', frecuencia: 'Mensual', tiempo: '1.0 Hora', herramientas: ['Llave de banda', 'Manómetro patrón', 'Bandeja colectora'], insumos: ['Aceite hidráulico ISO VG 46', 'Paños'], repuestos: ['Filtro de retorno 10 micras'], pasos: ['Comprobar nivel', 'Inspeccionar saturación', 'Limpiar intercambiador', 'Chequear fugas en mangueras'], criterio: 'Temp < 52°C; filtro nuevo.' },
-            { id: 'pm-ele', sistema: 'Eléctrico', titulo: 'Inspección Eléctrica, Termografía y Reapriete', frecuencia: 'Trimestral', tiempo: '2.0 Horas', herramientas: ['Cámara termográfica', 'Multímetro TRMS', 'Megger 1000V'], insumos: ['Limpiador dieléctrico', 'Aire seco'], repuestos: ['Contactores 32A', 'Resistencias banda'], pasos: ['Termografía bajo carga', 'LOTO eléctrico', 'Soplar tablero', 'Reapretar terminales', 'Megado de motor (>100 MΩ)'], criterio: 'ΔT entre fases < 10°C.' },
-            { id: 'pm-neu', sistema: 'Neumático', titulo: 'Drenaje de Condensados y Red Neumática', frecuencia: 'Semanal', tiempo: '30 Minutos', herramientas: ['Manómetro', 'Detector de fugas'], insumos: ['Aceite ISO VG 32', 'Cinta teflón'], repuestos: ['Manguera PU 8mm'], pasos: ['Purgar filtro FRL', 'Presión en 7 bar', 'Rellenar lubricador', 'Inspeccionar mangueras'], criterio: 'Cero fugas audibles.' },
-            { id: 'pm-chl', sistema: 'Chiller', titulo: 'Monitoreo de Gas, Condensador y Flujo de Agua', frecuencia: 'Semanal', tiempo: '45 Minutos', herramientas: ['Detector de refrigerante', 'Manifold digital'], insumos: ['Gas R-410A'], repuestos: ['Válvula Schrader'], pasos: ['Registrar temp ida/retorno (10-12°C)', 'Soplar serpentín condensador', 'Limpiar filtro tipo Y'], criterio: 'Agua a 10°C; serpentín limpio.' },
-            { id: 'pm-cmp', sistema: 'Compresor', titulo: 'Purga y Mantenimiento de Compresor de Tornillo', frecuencia: 'Semanal', tiempo: '45 Minutos', herramientas: ['Llave de purga', 'Aspiradora'], insumos: ['Aceite sintético'], repuestos: ['Filtro admisión', 'Filtro separador'], pasos: ['Purgar pulmón principal', 'Nivel de aceite en mirilla', 'Revisar secador frigorífico (<3°C)'], criterio: 'Presión constante a 7.5 bar.' },
-            { id: 'pm-gen', sistema: 'Planta Eléctrica', titulo: 'Prueba de Arranque, ATS y Nivel de Diésel', frecuencia: 'Semanal', tiempo: '30 Minutos', herramientas: ['Multímetro', 'Cronómetro'], insumos: ['Diésel reposición'], repuestos: ['Batería 12V 100Ah'], pasos: ['Diésel > 75%', 'Arranque en vacío 10 min', 'Voltaje 220/380V a 60Hz', 'Probar transferencia ATS'], criterio: 'Arranque en < 10 segundos.' }
+        // --- PLANES Y FICHAS TÉCNICAS (ESTRUCTURA SAP PM) ---
+        const planesMaestrosIniciales = [
+            { id: 'pm-mec', code: 'HR-INY-001', sistema: 'Mecánico', titulo: 'Verificación Mecánica, Rodillera y Paralelismo', workCenter: 'MEC-01', activityType: 'PM01', strategy: 'tiempo', frecuencia: 'Mensual', tiempo: '1.5 Horas', condition: 'parada_loto', herramientas: ['Comparador de carátula', 'Grasera neumática', 'Torquímetro', 'Galgas'], insumos: ['Grasa EP-2 Base Litio', 'Paños absorbentes'], repuestos: ['Bujes de bronce'], pasos: ['0010: Bloqueo LOTO y consignación', '0020: Limpieza de columnas y guías', '0030: Inyectar grasa EP-2 en rodilleras', '0040: Medir paralelismo con reloj comparador (< 0.1 mm)', '0050: Prueba en vacío de cierre y apertura'], criterio: 'Desviación < 0.1 mm en 4 esquinas.', plannerGroup: 'Ingeniero Sanchez Danny' },
+            { id: 'pm-hid', code: 'HR-INY-002', sistema: 'Hidráulico', titulo: 'Filtración y Control Térmico Hidráulico', workCenter: 'HID-01', activityType: 'PM01', strategy: 'tiempo', frecuencia: 'Mensual', tiempo: '1.0 Hora', condition: 'en_marcha', herramientas: ['Llave de banda', 'Manómetro patrón', 'Bandeja colectora'], insumos: ['Aceite hidráulico ISO VG 46', 'Paños'], repuestos: ['Filtro de retorno 10 micras'], pasos: ['0010: Comprobar nivel en mirilla óptica', '0020: Inspeccionar indicador diferencial de saturación', '0030: Limpiar intercambiador de placas', '0040: Chequear estanqueidad en mangueras flexibles'], criterio: 'Temp < 52°C; filtro nuevo sin fugas.', plannerGroup: 'Ingeniero Sanchez Danny' },
+            { id: 'pm-ele', code: 'HR-GEN-001', sistema: 'Eléctrico', titulo: 'Inspección Eléctrica, Termografía y Reapriete', workCenter: 'ELE-01', activityType: 'PM02', strategy: 'tiempo', frecuencia: 'Trimestral', tiempo: '2.0 Horas', condition: 'parada_loto', herramientas: ['Cámara termográfica', 'Multímetro TRMS', 'Megger 1000V'], insumos: ['Limpiador dieléctrico', 'Aire seco'], repuestos: ['Contactores 32A', 'Resistencias banda'], pasos: ['0010: Barrido termográfico bajo carga nominal', '0020: Corte de potencia y consignación LOTO', '0030: Aspirado y soplado del tablero eléctrico', '0040: Reapriete dinamométrico de bornes', '0050: Medición de aislamiento motor con Megger (>100 MΩ)'], criterio: 'ΔT entre fases < 10°C; aislamiento > 100 MΩ.', plannerGroup: 'Ingeniero Sanchez Danny' },
+            { id: 'pm-neu', code: 'HR-NEU-001', sistema: 'Neumático', titulo: 'Drenaje de Condensados y Red Neumática', workCenter: 'NEU-01', activityType: 'PM01', strategy: 'tiempo', frecuencia: 'Semanal', tiempo: '30 Minutos', condition: 'en_marcha', herramientas: ['Manómetro', 'Detector de fugas acústico'], insumos: ['Aceite ISO VG 32', 'Cinta teflón'], repuestos: ['Manguera PU 8mm'], pasos: ['0010: Purgar filtro FRL y separador ciclónico', '0020: Regular presión de servicio a 7.0 bar', '0030: Rellenar nivel de lubricador neumático', '0040: Inspeccionar racores rápidos y electroválvulas'], criterio: 'Cero fugas audibles; presión estable en 7 bar.', plannerGroup: 'Ingeniero Sanchez Danny' },
+            { id: 'pm-chl', code: 'HR-CHL-001', sistema: 'Chiller', titulo: 'Monitoreo de Gas, Condensador y Flujo de Agua', workCenter: 'REF-01', activityType: 'PM02', strategy: 'contador_horas', frecuencia: 'Semanal', tiempo: '45 Minutos', condition: 'en_marcha', herramientas: ['Detector de refrigerante', 'Manifold digital'], insumos: ['Gas R-410A'], repuestos: ['Válvula Schrader'], pasos: ['0010: Registrar temperaturas de impulsión y retorno (10-12°C)', '0020: Cepillar y soplar serpentín condensador', '0030: Desmontar y lavar filtro de agua tipo Y', '0040: Medir presiones de alta y baja con manifold'], criterio: 'Agua a 10-12°C; presiones dentro de curva del fabricante.', plannerGroup: 'Ingeniero Sanchez Danny' },
+            { id: 'pm-cmp', code: 'HR-CMP-001', sistema: 'Compresor', titulo: 'Purga y Mantenimiento de Compresor de Tornillo', workCenter: 'MEC-01', activityType: 'PM01', strategy: 'contador_horas', frecuencia: 'Semanal', tiempo: '45 Minutos', condition: 'en_marcha', herramientas: ['Llave de purga', 'Aspiradora industrial'], insumos: ['Aceite sintético'], repuestos: ['Filtro admisión', 'Filtro separador'], pasos: ['0010: Purgar pulmón vertical acumulador', '0020: Verificar nivel de lubricante en mirilla de tornillo', '0030: Limpiar prefiltro de admisión con aire comprimido', '0040: Comprobar punto de rocío del secador frigorífico (<3°C)'], criterio: 'Presión en red constante a 7.5 bar.', plannerGroup: 'Ingeniero Sanchez Danny' },
+            { id: 'pm-gen', code: 'HR-GEN-002', sistema: 'Planta Eléctrica', titulo: 'Prueba de Arranque, ATS y Nivel de Diésel', workCenter: 'ELE-01', activityType: 'PM02', strategy: 'tiempo', frecuencia: 'Semanal', tiempo: '30 Minutos', condition: 'en_marcha', herramientas: ['Multímetro', 'Cronómetro', 'Densímetro'], insumos: ['Diésel reposición'], repuestos: ['Batería 12V 100Ah'], pasos: ['0010: Verificar nivel de diésel (> 75% del tanque)', '0020: Ejecutar arranque manual en vacío 10 minutos', '0030: Medir tensión (220/380V) y frecuencia (60 Hz)', '0040: Simular corte de red y auditar transferencia ATS'], criterio: 'Arranque autónomo en < 10 segundos y transferencia estable.', plannerGroup: 'Ingeniero Sanchez Danny' }
         ];
+
+        let planesMaestros = (function() {
+            if (appData.planes && appData.planes.length > 0) {
+                return appData.planes;
+            }
+            appData.planes = planesMaestrosIniciales;
+            return planesMaestrosIniciales;
+        })();
+
+        function abrirModalNuevoPlanSap() {
+            document.getElementById('modal-nuevo-plan-sap').classList.add('active');
+            const num = (planesMaestros.length + 1).toString().padStart(3, '0');
+            document.getElementById('nps-code').value = `HR-PM-${num}`;
+        }
+
+        function guardarNuevoPlanSap(e) {
+            e.preventDefault();
+            const code = document.getElementById('nps-code').value.trim();
+            const sistema = document.getElementById('nps-sistema').value;
+            const titulo = document.getElementById('nps-titulo').value.trim();
+            const workcenter = document.getElementById('nps-workcenter').value;
+            const acttype = document.getElementById('nps-acttype').value;
+            const estrategia = document.getElementById('nps-estrategia').value;
+            const frecuencia = document.getElementById('nps-frecuencia').value;
+            const tiempo = document.getElementById('nps-tiempo').value.trim() || '1.5 Horas';
+            const condicion = document.getElementById('nps-condicion').value;
+            const permisos = document.getElementById('nps-permisos').value.trim();
+            const operacionesRaw = document.getElementById('nps-operaciones').value.trim();
+            const herramientasRaw = document.getElementById('nps-herramientas').value.trim();
+            const insumosRaw = document.getElementById('nps-insumos').value.trim();
+            const repuestosRaw = document.getElementById('nps-repuestos').value.trim();
+            const criterio = document.getElementById('nps-criterio').value.trim();
+            const planificador = document.getElementById('nps-planificador').value;
+
+            const pasos = operacionesRaw.split('\n').map(s => s.trim()).filter(Boolean);
+            const herramientas = herramientasRaw.split(',').map(s => s.trim()).filter(Boolean);
+            const insumos = insumosRaw.split(',').map(s => s.trim()).filter(Boolean);
+            const repuestos = repuestosRaw.split(',').map(s => s.trim()).filter(Boolean);
+
+            const nuevoPlan = {
+                id: 'pm-' + Date.now(),
+                code: code,
+                sistema: sistema,
+                titulo: titulo,
+                workCenter: workcenter,
+                activityType: acttype,
+                strategy: estrategia,
+                frecuencia: frecuencia,
+                tiempo: tiempo,
+                condition: condicion,
+                permits: permisos,
+                herramientas: herramientas,
+                insumos: insumos,
+                repuestos: repuestos,
+                pasos: pasos,
+                criterio: criterio,
+                plannerGroup: planificador
+            };
+
+            planesMaestros.push(nuevoPlan);
+            appData.planes = planesMaestros;
+            guardarDatos();
+            renderPlanes();
+            cerrarModales();
+            mostrarToast(`Actividad Preventiva ${code} guardada exitosamente en el sistema SAP PM`, 'success');
+        }
 
         function renderPlanes() {
             const contPlanes = document.getElementById('contenedor-planes-acordeones');
@@ -1454,23 +1679,42 @@
                 // Acordeón para pestaña Planes
                 const divAcordeon = document.createElement('div');
                 divAcordeon.className = 'accordion';
+                const wcBadge = pm.workCenter ? `<span style="font-size:0.65rem; background:rgba(99,102,241,0.2); color:#a5b4fc; padding:2px 6px; border-radius:4px; font-weight:bold; margin-right:6px;">Puesto: ${pm.workCenter}</span>` : '';
+                const actBadge = pm.activityType ? `<span style="font-size:0.65rem; background:rgba(16,185,129,0.2); color:#6ee7b7; padding:2px 6px; border-radius:4px; font-weight:bold; margin-right:6px;">${pm.activityType}</span>` : '';
+                const codeBadge = pm.code ? `<span style="font-family:'JetBrains Mono'; font-size:0.75rem; color:var(--accent-cyan); font-weight:bold; margin-right:6px;">${pm.code}</span>` : '';
+
                 divAcordeon.innerHTML = `
                     <div class="accordion-header ${idx === 0 ? 'active' : ''}" onclick="toggleAcordeon(this)">
-                        <div><i class="fa-solid fa-gear" style="color:var(--accent-cyan); margin-right:8px;"></i> ${pm.sistema}: ${pm.titulo}</div>
+                        <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
+                            ${codeBadge}
+                            ${wcBadge}
+                            ${actBadge}
+                            <i class="fa-solid fa-gear" style="color:var(--accent-cyan); margin-right:4px;"></i> 
+                            <strong>${pm.sistema}:</strong> ${pm.titulo}
+                        </div>
                         <i class="fa-solid fa-chevron-down accordion-icon"></i>
                     </div>
                     <div class="accordion-content ${idx === 0 ? 'active' : ''}">
+                        <div style="margin-bottom:8px; font-size:0.72rem; color:var(--text-secondary); display:flex; gap:12px; flex-wrap:wrap;">
+                            <span>Estrategia: <strong style="color:white;">${pm.strategy === 'contador_horas' ? 'Por Horas' : pm.strategy === 'contador_ciclos' ? 'Por Ciclos' : 'Por Tiempo'}</strong></span>
+                            <span>Condición: <strong style="color:${pm.condition === 'parada_loto' ? '#f87171' : '#34d399'};">${pm.condition === 'parada_loto' ? 'Parada LOTO' : 'En Marcha'}</strong></span>
+                            <span>Planificador: <strong style="color:#fbbf24;">${pm.plannerGroup || 'Ingeniero Sanchez Danny'}</strong></span>
+                        </div>
                         <div class="table-wrapper">
                             <table class="tech-table">
-                                <thead><tr><th>Frecuencia</th><th>Procedimiento</th><th>Herramientas / Insumos</th><th>Criterio</th><th style="text-align:right;">Acción</th></tr></thead>
+                                <thead><tr><th>Frecuencia</th><th>Hoja de Ruta (Operaciones SAP)</th><th>Herramientas / Insumos</th><th>Criterio Calidad</th><th style="text-align:right;">Acción</th></tr></thead>
                                 <tbody>
                                     <tr>
-                                        <td><span class="badge badge-cyan">${pm.frecuencia}</span></td>
-                                        <td>${pm.pasos.join(' → ')}</td>
-                                        <td>${pm.herramientas.concat(pm.insumos).join(', ')}</td>
-                                        <td style="color:var(--accent-emerald); font-weight:600;">${pm.criterio}</td>
+                                        <td><span class="badge badge-cyan">${pm.frecuencia}</span><div style="font-size:0.68rem; color:var(--text-secondary); margin-top:2px;">${pm.tiempo}</div></td>
+                                        <td style="font-size:0.75rem; line-height:1.4;">${pm.pasos.join('<br>')}</td>
+                                        <td style="font-size:0.75rem;">
+                                            <div><strong>PRT:</strong> ${pm.herramientas.join(', ')}</div>
+                                            <div style="color:var(--accent-amber); margin-top:2px;"><strong>Insumos:</strong> ${pm.insumos.join(', ')}</div>
+                                            <div style="color:var(--accent-purple); margin-top:2px;"><strong>BOM:</strong> ${pm.repuestos.join(', ')}</div>
+                                        </td>
+                                        <td style="color:var(--accent-emerald); font-weight:600; font-size:0.75rem;">${pm.criterio}</td>
                                         <td style="text-align:right;">
-                                            <button class="btn-action btn-cyan" onclick="crearOtDesdePlan('${pm.id}')" style="font-size:0.68rem;"><i class="fa-solid fa-plus"></i> OT</button>
+                                            <button class="btn-action btn-cyan" onclick="crearOtDesdePlan('${pm.id}')" style="font-size:0.68rem;"><i class="fa-solid fa-plus"></i> Programar OT</button>
                                         </td>
                                     </tr>
                                 </tbody>
@@ -1485,7 +1729,7 @@
                 divFicha.className = `item-ficha ${idx === 0 ? 'active' : ''}`;
                 divFicha.onclick = () => verDetalleFicha(pm.id, divFicha);
                 divFicha.innerHTML = `
-                    <h4><i class="fa-solid fa-wrench" style="color:var(--accent-cyan);"></i> ${pm.titulo}</h4>
+                    <h4><i class="fa-solid fa-wrench" style="color:var(--accent-cyan);"></i> ${pm.code || ''} ${pm.titulo}</h4>
                     <p><span><i class="fa-solid fa-microchip"></i> ${pm.sistema}</span> <span><i class="fa-solid fa-repeat"></i> ${pm.frecuencia}</span> <span><i class="fa-regular fa-clock"></i> ${pm.tiempo}</span></p>
                 `;
                 contFichas.appendChild(divFicha);
@@ -1510,43 +1754,56 @@
 
         function mostrarFichaDetalle(pm) {
             const cont = document.getElementById('detalle-ficha-container');
+            const codeHtml = pm.code ? `<span class="badge" style="background:#0f172a; border:1px solid #06b6d4; color:#06b6d4; font-family:'JetBrains Mono'; font-weight:bold;">${pm.code}</span>` : '';
+            const wcHtml = pm.workCenter ? `<span class="badge" style="background:rgba(99,102,241,0.2); border:1px solid rgba(99,102,241,0.4); color:#a5b4fc;">Puesto: ${pm.workCenter}</span>` : '';
+            const actHtml = pm.activityType ? `<span class="badge" style="background:rgba(16,185,129,0.2); border:1px solid rgba(16,185,129,0.4); color:#6ee7b7;">${pm.activityType}</span>` : '';
+            const condHtml = pm.condition ? `<span class="badge" style="background:${pm.condition === 'parada_loto' ? 'rgba(239,68,68,0.2)' : 'rgba(16,185,129,0.2)'}; color:${pm.condition === 'parada_loto' ? '#f87171' : '#34d399'};">${pm.condition === 'parada_loto' ? 'Parada LOTO' : 'En Marcha'}</span>` : '';
+
             cont.innerHTML = `
                 <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1.2rem; padding-bottom:0.75rem; border-bottom:2px solid var(--accent-cyan); flex-wrap:wrap; gap:10px;">
                     <div>
-                        <div style="display:flex; gap:6px; margin-bottom:4px;">
+                        <div style="display:flex; gap:6px; margin-bottom:6px; flex-wrap:wrap;">
+                            ${codeHtml}
                             <span class="badge badge-cyan">${pm.sistema}</span>
+                            ${wcHtml}
+                            ${actHtml}
                             <span class="badge badge-emerald">${pm.frecuencia}</span>
                             <span class="badge badge-amber">${pm.tiempo}</span>
+                            ${condHtml}
                         </div>
                         <h2 style="font-size:1.15rem; color:white;">${pm.titulo}</h2>
+                        <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:4px;">
+                            Planificador: <strong style="color:#fbbf24;">${pm.plannerGroup || 'Ingeniero Sanchez Danny'}</strong>
+                            ${pm.permits ? `<span style="margin-left:12px; color:#f87171;">Permiso: ${pm.permits}</span>` : ''}
+                        </div>
                     </div>
                     <button class="btn-action btn-cyan" onclick="crearOtDesdePlan('${pm.id}')"><i class="fa-solid fa-plus-circle"></i> Programar OT</button>
                 </div>
 
                 <div class="grid-3" style="margin-bottom:1.5rem; font-size:0.78rem;">
                     <div style="background:rgba(0,0,0,0.25); padding:0.9rem; border-radius:8px; border:1px solid var(--border-color);">
-                        <strong style="color:var(--accent-cyan); display:block; margin-bottom:6px;"><i class="fa-solid fa-toolbox"></i> Herramientas:</strong>
+                        <strong style="color:var(--accent-cyan); display:block; margin-bottom:6px;"><i class="fa-solid fa-toolbox"></i> Herramientas (PRT):</strong>
                         <ul style="padding-left:15px; color:var(--text-secondary);">${pm.herramientas.map(h => `<li>${h}</li>`).join('')}</ul>
                     </div>
                     <div style="background:rgba(0,0,0,0.25); padding:0.9rem; border-radius:8px; border:1px solid var(--border-color);">
-                        <strong style="color:var(--accent-amber); display:block; margin-bottom:6px;"><i class="fa-solid fa-spray-can"></i> Insumos:</strong>
+                        <strong style="color:var(--accent-amber); display:block; margin-bottom:6px;"><i class="fa-solid fa-spray-can"></i> Insumos / Fluidos:</strong>
                         <ul style="padding-left:15px; color:var(--text-secondary);">${pm.insumos.map(i => `<li>${i}</li>`).join('')}</ul>
                     </div>
                     <div style="background:rgba(0,0,0,0.25); padding:0.9rem; border-radius:8px; border:1px solid var(--border-color);">
-                        <strong style="color:var(--accent-purple); display:block; margin-bottom:6px;"><i class="fa-solid fa-cog"></i> Repuestos:</strong>
+                        <strong style="color:var(--accent-purple); display:block; margin-bottom:6px;"><i class="fa-solid fa-cog"></i> Repuestos BOM:</strong>
                         <ul style="padding-left:15px; color:var(--text-secondary);">${pm.repuestos.map(r => `<li>${r}</li>`).join('')}</ul>
                     </div>
                 </div>
 
                 <div style="background:rgba(0,0,0,0.3); padding:1rem; border-radius:8px; border:1px solid var(--border-color); font-size:0.8rem; margin-bottom:1rem;">
-                    <strong style="color:var(--accent-emerald); display:block; margin-bottom:8px;"><i class="fa-solid fa-list-ol"></i> Procedimiento Paso a Paso:</strong>
+                    <strong style="color:var(--accent-emerald); display:block; margin-bottom:8px;"><i class="fa-solid fa-list-ol"></i> Hoja de Ruta - Operaciones Técnicas SAP PM:</strong>
                     <ol style="padding-left:18px; color:var(--text-secondary); display:flex; flex-direction:column; gap:4px;">
                         ${pm.pasos.map(p => `<li>${p}</li>`).join('')}
                     </ol>
                 </div>
 
                 <div class="alert-box success">
-                    <strong>Criterio de Aceptación:</strong> ${pm.criterio}
+                    <strong>Criterio de Calidad / Aceptación (ISO 9001):</strong> ${pm.criterio}
                 </div>
             `;
         }

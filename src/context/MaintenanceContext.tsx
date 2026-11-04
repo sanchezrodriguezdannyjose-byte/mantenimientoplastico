@@ -53,6 +53,12 @@ interface MaintenanceContextType {
   updateEquipment: (id: string, updates: Partial<Equipment>) => void;
   deleteEquipment: (id: string) => void;
 
+  // Plan Templates Actions (Planes Preventivos / Hojas de Ruta SAP PM)
+  addPlanTemplate: (template: Omit<PlanTemplate, 'id'>) => PlanTemplate;
+  updatePlanTemplate: (id: string, updates: Partial<PlanTemplate>) => void;
+  deletePlanTemplate: (id: string) => void;
+  duplicatePlanTemplate: (id: string) => void;
+
   // Work Order Actions
   addWorkOrder: (order: Omit<WorkOrder, 'id' | 'code' | 'createdAt'>) => void;
   updateWorkOrder: (id: string, updates: Partial<WorkOrder>) => void;
@@ -62,7 +68,8 @@ interface MaintenanceContextType {
     observations: string,
     technicianSig: string,
     supervisorSig: string,
-    consumedParts: { partId: string; quantity: number }[]
+    consumedParts: { partId: string; quantity: number }[],
+    downtimeHours?: number
   ) => void;
   deleteWorkOrder: (id: string) => void;
   generateBatchOrders: (startDate: string, periodMonths: number) => number;
@@ -128,7 +135,14 @@ export const MaintenanceProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
   });
 
-  const [templates] = useState<PlanTemplate[]>(initialPlanTemplates);
+  const [templates, setTemplates] = useState<PlanTemplate[]>(() => {
+    try {
+      const saved = localStorage.getItem(`${STORAGE_KEY}_templates`);
+      return saved ? JSON.parse(saved) : initialPlanTemplates;
+    } catch {
+      return initialPlanTemplates;
+    }
+  });
 
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>(() => {
     try {
@@ -191,6 +205,7 @@ export const MaintenanceProvider: React.FC<{ children: ReactNode }> = ({ childre
   useEffect(() => {
     try {
       localStorage.setItem(`${STORAGE_KEY}_equipments`, JSON.stringify(equipments));
+      localStorage.setItem(`${STORAGE_KEY}_templates`, JSON.stringify(templates));
       localStorage.setItem(`${STORAGE_KEY}_work_orders`, JSON.stringify(workOrders));
       localStorage.setItem(`${STORAGE_KEY}_inventory`, JSON.stringify(inventory));
       localStorage.setItem(`${STORAGE_KEY}_movements`, JSON.stringify(movements));
@@ -200,7 +215,7 @@ export const MaintenanceProvider: React.FC<{ children: ReactNode }> = ({ childre
     } catch (e) {
       console.warn('Error saving to LocalStorage', e);
     }
-  }, [equipments, workOrders, inventory, movements, checklistLogs, failures, moldRecords]);
+  }, [equipments, templates, workOrders, inventory, movements, checklistLogs, failures, moldRecords]);
 
   const addToast = (type: ToastMessage['type'], title: string, message: string) => {
     const id = `toast-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`;
@@ -240,6 +255,53 @@ export const MaintenanceProvider: React.FC<{ children: ReactNode }> = ({ childre
   const deleteEquipment = (id: string) => {
     setEquipments(prev => prev.filter(eq => eq.id !== id));
     addToast('warning', 'Equipo Eliminado', 'Se ha eliminado el equipo del sistema.');
+  };
+
+  // Plan Templates Handlers (SAP PM)
+  const addPlanTemplate = (templateData: Omit<PlanTemplate, 'id'>): PlanTemplate => {
+    const id = `pm-tpl-${Date.now()}`;
+    const code = templateData.code || `HR-${templateData.system.substring(0, 3).toUpperCase()}-${String(templates.length + 1).padStart(3, '0')}`;
+    const newTemplate: PlanTemplate = {
+      ...templateData,
+      id,
+      code,
+      activeStatus: templateData.activeStatus !== undefined ? templateData.activeStatus : true
+    };
+    setTemplates(prev => [newTemplate, ...prev]);
+    addToast(
+      'success',
+      'Plan Preventivo Creado',
+      `Se registró la actividad '${newTemplate.titulo}' (${newTemplate.code}) bajo puesto ${newTemplate.workCenter || 'MEC-01'}.`
+    );
+    return newTemplate;
+  };
+
+  const updatePlanTemplate = (id: string, updates: Partial<PlanTemplate>) => {
+    setTemplates(prev =>
+      prev.map(t => (t.id === id ? { ...t, ...updates } : t))
+    );
+    addToast('info', 'Plan Actualizado', 'La actividad de mantenimiento preventivo fue actualizada.');
+  };
+
+  const deletePlanTemplate = (id: string) => {
+    const target = templates.find(t => t.id === id);
+    setTemplates(prev => prev.filter(t => t.id !== id));
+    addToast('warning', 'Plan Eliminado', `Se removió la actividad '${target?.titulo || id}'.`);
+  };
+
+  const duplicatePlanTemplate = (id: string) => {
+    const target = templates.find(t => t.id === id);
+    if (!target) return;
+    const newId = `pm-tpl-${Date.now()}`;
+    const newCode = `${target.code || 'HR'}-COPIA`;
+    const cloned: PlanTemplate = {
+      ...target,
+      id: newId,
+      code: newCode,
+      titulo: `${target.titulo} (Copia)`
+    };
+    setTemplates(prev => [cloned, ...prev]);
+    addToast('success', 'Plan Duplicado', `Se creó una copia '${cloned.titulo}'.`);
   };
 
   // Work Order Handlers
@@ -289,7 +351,8 @@ export const MaintenanceProvider: React.FC<{ children: ReactNode }> = ({ childre
     observations: string,
     technicianSig: string,
     supervisorSig: string,
-    consumedParts: { partId: string; quantity: number }[]
+    consumedParts: { partId: string; quantity: number }[],
+    downtimeHours?: number
   ) => {
     const targetOrder = workOrders.find(o => o.id === orderId);
     if (!targetOrder) return;
@@ -332,11 +395,16 @@ export const MaintenanceProvider: React.FC<{ children: ReactNode }> = ({ childre
     setMovements(currentMovements);
 
     const completionTime = new Date().toISOString().replace('T', ' ').substring(0, 16);
+    const resolvedDowntime = downtimeHours !== undefined 
+      ? downtimeHours 
+      : (targetOrder.downtimeHours || (targetOrder.type === 'Correctivo' || targetOrder.priority === 'Critica' ? realHours : 0));
+
     const updatedOrder: WorkOrder = {
       ...targetOrder,
       status: 'Completada',
       completedAt: completionTime,
       realDurationHours: realHours,
+      downtimeHours: resolvedDowntime,
       observations: observations || targetOrder.observations,
       technicianSignature: technicianSig || targetOrder.assignedTechnician,
       supervisorSignature: supervisorSig || targetOrder.verifierSupervisor,
@@ -1115,6 +1183,10 @@ export const MaintenanceProvider: React.FC<{ children: ReactNode }> = ({ childre
         addEquipment,
         updateEquipment,
         deleteEquipment,
+        addPlanTemplate,
+        updatePlanTemplate,
+        deletePlanTemplate,
+        duplicatePlanTemplate,
         addWorkOrder,
         updateWorkOrder,
         completeWorkOrderWithDeductions,

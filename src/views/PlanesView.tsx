@@ -1,238 +1,559 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useMaintenance } from '../context/MaintenanceContext';
+import { PlanTemplate, SapWorkCenter, SapActivityType } from '../types';
 import {
-  ChevronDown,
-  ChevronUp,
   Wrench,
   Droplet,
   Wind,
   Zap,
   Cpu,
-  ShieldCheck,
   Snowflake,
   Fan,
   Flame,
-  Plus
+  Plus,
+  Search,
+  Filter,
+  Copy,
+  Edit,
+  Trash2,
+  CheckCircle2,
+  Layers,
+  Clock,
+  ShieldCheck,
+  AlertTriangle,
+  Sliders,
+  Package,
+  FileText,
+  ChevronDown,
+  ChevronUp,
+  ClipboardList
 } from 'lucide-react';
+import { PlanTemplateModal } from '../components/PlanTemplateModal';
 
 interface PlanesViewProps {
   onOpenNewOtForTemplate: (title: string, system: string) => void;
 }
 
 export const PlanesView: React.FC<PlanesViewProps> = ({ onOpenNewOtForTemplate }) => {
-  const [openAccordions, setOpenAccordions] = useState<Record<string, boolean>>({
-    'mecanico': true,
-    'hidraulico': true,
-    'chiller': true,
-    'compresor': true,
-    'planta': true
-  });
+  const { templates, deletePlanTemplate, duplicatePlanTemplate } = useMaintenance();
 
-  const toggleAccordion = (id: string) => {
-    setOpenAccordions(prev => ({ ...prev, [id]: !prev[id] }));
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedSystem, setSelectedSystem] = useState<string>('todos');
+  const [selectedWorkCenter, setSelectedWorkCenter] = useState<string>('todos');
+  const [selectedActivityType, setSelectedActivityType] = useState<string>('todos');
+
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<PlanTemplate | null>(null);
+
+  // Expanded accordions
+  const [expandedPlanIds, setExpandedPlanIds] = useState<Record<string, boolean>>({});
+
+  const toggleExpand = (id: string) => {
+    setExpandedPlanIds(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const sections = [
-    {
-      id: 'mecanico',
-      title: '1. Sistema Mecánico (Husillo, Unidad de Cierre, Rodillera y Eyección)',
-      icon: <Wrench className="w-5 h-5 text-blue-400" />,
-      items: [
-        { freq: 'Mensual', badge: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30', task: 'Verificar paralelismo de platos (desviación máx 0.1 mm con comparador de carátula en 4 esquinas).', tools: 'Comparador de carátula, base magnética, galgas.', criteria: 'Desviación < 0.1 mm. Ajuste de tuercas si excede.' },
-        { freq: 'Mensual', badge: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30', task: 'Medir holgura radial/axial de la rodillera (Toggle) e inyectar grasa EP-2 en pasadores.', tools: 'Pistola de engrase neumática, grasa EP-2, calibre.', criteria: 'Sin juego axial visible; expulsión de grasa vieja.' },
-        { freq: 'Trimestral', badge: 'bg-amber-500/15 text-amber-400 border-amber-500/30', task: 'Revisar desgaste de husillo y camisa bimetálica (medir diámetro interno/externo con micrómetro).', tools: 'Micrómetro interior/exterior, linterna LED.', criteria: 'Desgaste < 0.20 mm respecto a cota nominal de fábrica.' },
-        { freq: 'Trimestral', badge: 'bg-amber-500/15 text-amber-400 border-amber-500/30', task: 'Inspeccionar guías y placa expulsora de moldes y resortes de retorno de eyección.', tools: 'Llaves Allen, calibre, lubricante blanco.', criteria: 'Retorno instantáneo al 100% sin roce metálico.' },
-        { freq: 'Semestral', badge: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30', task: 'Tensión y alineación de correas/fajas de transmisión principal de bomba y extrusora.', tools: 'Tensiómetro de frecuencia / regla de deflexión.', criteria: 'Deflexión de 10 mm al centro bajo carga nominal.' }
-      ]
-    },
-    {
-      id: 'hidraulico',
-      title: '2. Sistema Hidráulico (Bombas Proporcionales, Válvulas, Filtros y Aceite)',
-      icon: <Droplet className="w-5 h-5 text-rose-400" />,
-      items: [
-        { freq: 'Diario', badge: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30', task: 'Verificar nivel de aceite en mirilla con cilindros retraídos y monitorear temperatura del tanque.', tools: 'Inspección visual, pirómetro infrarrojo.', criteria: 'Nivel en tercio superior. Temperatura entre 40°C y 52°C.' },
-        { freq: 'Mensual', badge: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30', task: 'Reemplazar filtros de retorno de 10 micras o según manómetro de saturación diferencial.', tools: 'Filtros nuevos, llave de cinta, bandeja.', criteria: 'Indicador en zona verde; sello de vitón lubricado.' },
-        { freq: 'Trimestral', badge: 'bg-amber-500/15 text-amber-400 border-amber-500/30', task: 'Limpiar haz tubular del intercambiador de calor agua/aceite (enfriador).', tools: 'Desengrasante, solución ácida suave, cepillo.', criteria: 'Diferencial térmico eficiente; aceite < 50°C a plena carga.' },
-        { freq: 'Trimestral', badge: 'bg-amber-500/15 text-amber-400 border-amber-500/30', task: 'Inspección minuciosa de mangueras de alta presión, retenes de vástago y racores.', tools: 'Paño absorbente, llave dinamométrica.', criteria: 'Cero exudaciones ni gotas en piso o bancada.' },
-        { freq: 'Anual', badge: 'bg-purple-500/15 text-purple-400 border-purple-500/30', task: 'Análisis de laboratorio de aceite hidráulico (viscosidad cSt, conteo de partículas ISO 4406, agua ppm).', tools: 'Kit de muestreo en botella sellada.', criteria: 'Código de limpieza ISO 18/16/13; agua < 200 ppm.' }
-      ]
-    },
-    {
-      id: 'neumatico',
-      title: '3. Sistema Neumático (Unidades FRL, Reguladores, Cilindros y Electroválvulas)',
-      icon: <Wind className="w-5 h-5 text-cyan-400" />,
-      items: [
-        { freq: 'Diario', badge: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30', task: 'Purgar condensado de agua en la taza de los filtros reguladores (FRL).', tools: 'Válvula manual de purga.', criteria: 'Taza de filtro transparente sin restos de agua ni aceite.' },
-        { freq: 'Diario', badge: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30', task: 'Verificar presión de aire de trabajo en manómetro regulador principal (6.0 - 7.5 bar).', tools: 'Manómetro calibrado de glicerina.', criteria: 'Presión constante sin caídas bruscas durante soplado.' },
-        { freq: 'Mensual', badge: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30', task: 'Verificar nivel de aceite lubricador neumático ISO VG 32 y lubricar cilindros de eyección.', tools: 'Aceite ISO VG 32 grado neumático.', criteria: 'Goteo de 1 gota cada 10 ciclos en el visor.' },
-        { freq: 'Trimestral', badge: 'bg-amber-500/15 text-amber-400 border-amber-500/30', task: 'Mantenimiento de electroválvulas de soplado (limpieza de bobinas, cambio de silenciadores).', tools: 'Limpiador de contactos dieléctrico, multímetro.', criteria: 'Conmutación instantánea < 30 ms sin zumbidos.' },
-        { freq: 'Trimestral', badge: 'bg-amber-500/15 text-amber-400 border-amber-500/30', task: 'Detección ultrasónica o con agua jabonosa de fugas en red neumática interna de la máquina.', tools: 'Detector acústico ultrasónico o atomizador jabón.', criteria: 'Cero fugas en racores y mangueras de poliuretano.' }
-      ]
-    },
-    {
-      id: 'electrico',
-      title: '4. Sistema Eléctrico de Potencia (Tableros, Contactores, Resistencias Calefactoras)',
-      icon: <Zap className="w-5 h-5 text-amber-400" />,
-      items: [
-        { freq: 'Diario', badge: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30', task: 'Inspección visual de terminales de resistencias de barril y cableado de alta temperatura.', tools: 'Visual, pirómetro infrarrojo.', criteria: 'Cero olor a quemado ni cables pelados o recalentados.' },
-        { freq: 'Mensual', badge: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30', task: 'Reapriete de borneras y tornillos de potencia en tablero principal con torquímetro aislado.', tools: 'Destornilladores 1000V dinamométricos.', criteria: 'Tornillos al torque del fabricante (1.5 - 2.5 Nm).' },
-        { freq: 'Mensual', badge: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30', task: 'Limpieza de contactores, arrancadores suaves y relés con aire seco libre de humedad.', tools: 'Aire comprimido seco a 2 bar, brocha electrostática.', criteria: 'Sin depósitos de polvillo aislante ni restos de resina.' },
-        { freq: 'Trimestral', badge: 'bg-amber-500/15 text-amber-400 border-amber-500/30', task: 'Barrido termográfico con cámara infrarroja bajo carga máxima de inyección/extrusión.', tools: 'Cámara termográfica FLIR calibrada.', criteria: 'ΔT entre fases y bornes < 10 °C. Cero puntos calientes.' },
-        { freq: 'Semestral', badge: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30', task: 'Prueba de resistencia de aislamiento de devanados de motores eléctricos (Megger 1000V).', tools: 'Megóhmetro Fluke 1000V DC.', criteria: 'Resistencia de aislamiento > 100 Megaohmios.' }
-      ]
-    },
-    {
-      id: 'electronica',
-      title: '5. Electrónica, PLC, Pantallas HMI y Sensores de Proceso',
-      icon: <Cpu className="w-5 h-5 text-purple-400" />,
-      items: [
-        { freq: 'Mensual', badge: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30', task: 'Calibración de pirómetros y termopares tipo J/K en cilindro, boquilla y zonas de molde.', tools: 'Calibrador de procesos multifunción patrón.', criteria: 'Desviación térmica inferior a ± 1.0 °C en todo el rango.' },
-        { freq: 'Mensual', badge: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30', task: 'Respaldo digital completo (Backup) de recetas de moldeo y software del PLC/HMI.', tools: 'Memoria USB industrial / Laptop de ingeniería.', criteria: 'Archivo .bak generado y verificado en servidor.' },
-        { freq: 'Trimestral', badge: 'bg-amber-500/15 text-amber-400 border-amber-500/30', task: 'Limpieza y alineación de reglas ópticas (transductores lineales) y encoders angulares.', tools: 'Paño microfibra, limpiador dieléctrico sin residuo.', criteria: 'Lectura milimétrica precisa y repetible al 100%.' },
-        { freq: 'Trimestral', badge: 'bg-amber-500/15 text-amber-400 border-amber-500/30', task: 'Inspección de disipadores y ventiladores de enfriamiento de servodrives y variadores.', tools: 'Aspiradora antiestática, brocha suave.', criteria: 'Disipadores sin polvo; temperatura de módulo < 60°C.' },
-        { freq: 'Semestral', badge: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30', task: 'Diagnóstico de redes industriales (Ethernet Industrial, CANopen, Profinet) y cableado.', tools: 'Analizador de red / comprobador de cables CAT6.', criteria: 'Cero tramas descartadas o errores de timeout en HMI.' }
-      ]
-    },
-    {
-      id: 'seguridad',
-      title: '6. Seguridad Ocupacional, Interbloqueos y Protección Ambiental',
-      icon: <ShieldCheck className="w-5 h-5 text-emerald-400" />,
-      items: [
-        { freq: 'Diario', badge: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30', task: 'Prueba funcional de paradas de emergencia (setas rojas) y cortina óptica de molde.', tools: 'Activación manual por turno.', criteria: 'Detención instantánea de bomba y apertura inmediata.' },
-        { freq: 'Diario', badge: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30', task: 'Verificación de microinterruptores de puerta delantera y trasera de seguridad.', tools: 'Apertura física de puerta.', criteria: 'La máquina imposibilita cualquier movimiento de cierre.' },
-        { freq: 'Mensual', badge: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30', task: 'Inspección de extintores de CO2/PQS y bandejas de retención de fugas de aceite.', tools: 'Checklist de seguridad industrial.', criteria: 'Manómetro en verde, precintos intactos y fecha vigente.' },
-        { freq: 'Trimestral', badge: 'bg-amber-500/15 text-amber-400 border-amber-500/30', task: 'Auditoría de uso de EPP para montaje (calzado con puntera, guantes térmicos, careta).', tools: 'Formulario de auditoría interna ISO 45001.', criteria: '100% de cumplimiento en operarios y técnicos.' }
-      ]
-    },
-    {
-      id: 'chiller',
-      title: '7. Chiller Central (Agua de Proceso para Enfriamiento de Moldes e Hidráulica)',
-      icon: <Snowflake className="w-5 h-5 text-cyan-400" />,
-      items: [
-        { freq: 'Diario', badge: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30', task: 'Registrar temperatura de suministro (ida) y retorno del agua fría de proceso.', tools: 'Termómetro digital / panel del Chiller.', criteria: 'Agua suministrada a 10 °C - 12 °C con ΔT de 3 a 5 °C.' },
-        { freq: 'Diario', badge: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30', task: 'Monitorear presiones de succión y descarga del compresor de refrigeración.', tools: 'Manómetros de alta/baja en cabina del chiller.', criteria: 'Dentro de envolvente de operación del gas (ej. R-410A).' },
-        { freq: 'Semanal', badge: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30', task: 'Limpiar aletas del serpentín condensador con aire comprimido a baja presión y cepillo suave.', tools: 'Aire seco, cepillo plástico para serpentines.', criteria: 'Libre de pelusas y polvo que bloqueen el flujo de aire.' },
-        { freq: 'Mensual', badge: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30', task: 'Desmontar y limpiar filtro colador en Y en la entrada de agua al evaporador.', tools: 'Llave francesa, cepillo de cerdas duras.', criteria: 'Malla metálica sin residuos de sarro ni óxido.' },
-        { freq: 'Trimestral', badge: 'bg-amber-500/15 text-amber-400 border-amber-500/30', task: 'Inspección de fugas de gas refrigerante en bridas, soldaduras y válvulas de servicio.', tools: 'Detector electrónico ultrasónico de refrigerantes.', criteria: 'Cero fugas detectables; mirilla de gas en color verde.' },
-        { freq: 'Semestral', badge: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30', task: 'Lavado químico de tubos del evaporador con solución desincrustante biodegradable.', tools: 'Bomba de recirculación química, ácido cítrico.', criteria: 'Transferencia térmica óptima sin sarro acumulado.' },
-        { freq: 'Anual', badge: 'bg-purple-500/15 text-purple-400 border-purple-500/30', task: 'Cambio de aceite sintético POE del compresor de refrigeración y análisis de acidez.', tools: 'Bomba de carga de aceite, kit de prueba de acidez.', criteria: 'Aceite neutro sin partículas de desgaste metálico.' }
-      ]
-    },
-    {
-      id: 'compresor',
-      title: '8. Compresor de Aire de Tornillo y Pulmón de Almacenamiento Principal',
-      icon: <Fan className="w-5 h-5 text-blue-400" />,
-      items: [
-        { freq: 'Diario', badge: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30', task: 'Drenar condensados acumulados en el tanque pulmón principal y verificar purgas automáticas.', tools: 'Válvula de purga manual inferior.', criteria: 'Cero agua retenida; purga electrónica disparando a tiempo.' },
-        { freq: 'Diario', badge: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30', task: 'Verificar presión en red (> 7.0 bar) y nivel de aceite del compresor en mirilla bajo carga.', tools: 'Manómetro principal, visor de vidrio.', criteria: 'Presión entre 7.0 y 7.8 bar; aceite en nivel verde.' },
-        { freq: 'Semanal', badge: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30', task: 'Recorrido por la red neumática de nave verificando ausencia de soplidos o fugas.', tools: 'Audición / detector ultrasónico.', criteria: 'Cero fugas audibles en toda la tubería troncal.' },
-        { freq: 'Mensual', badge: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30', task: 'Limpieza o sustitución del cartucho de filtro de admisión de aire del compresor.', tools: 'Aspiradora industrial, cartucho nuevo si amerita.', criteria: 'Pérdida de carga en admisión < 20 mbar.' },
-        { freq: 'Trimestral', badge: 'bg-amber-500/15 text-amber-400 border-amber-500/30', task: 'Inspeccionar secador frigorífico y verificar punto de rocío a presión (PDP < 3 °C).', tools: 'Sensor de humedad / pantalla del secador.', criteria: 'Aire de descarga 100% seco sin condensados arrastrados.' },
-        { freq: 'Semestral', badge: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30', task: 'Cambio de filtro de aceite y filtro separador aire/aceite del compresor.', tools: 'Filtros nuevos, llave de banda, torquímetro.', criteria: 'Diferencial de presión del separador < 0.2 bar.' },
-        { freq: 'Anual', badge: 'bg-purple-500/15 text-purple-400 border-purple-500/30', task: 'Reemplazo total de fluido refrigerante sintético del tornillo y prueba de temperatura.', tools: 'Aceite sintético para compresor (ej. Roto-Inject).', criteria: 'Temperatura de tornillo estabilizada en 82°C.' }
-      ]
-    },
-    {
-      id: 'planta',
-      title: '9. Planta Eléctrica de Emergencia (Generador Diésel y Tablero ATS)',
-      icon: <Flame className="w-5 h-5 text-rose-400" />,
-      items: [
-        { freq: 'Semanal', badge: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30', task: 'Arranque manual de prueba en vacío por 10 minutos y registro de voltaje y frecuencia.', tools: 'Multímetro TRMS, panel Deep Sea del generador.', criteria: 'Voltaje 220V/380V y 60.0 Hz estables; sin fugas.' },
-        { freq: 'Semanal', badge: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30', task: 'Verificar nivel de aceite de motor diésel y refrigerante en radiador/depósito.', tools: 'Varilla de nivel, visor de refrigerante.', criteria: 'Aceite en marca MAX; refrigerante a nivel correcto.' },
-        { freq: 'Semanal', badge: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30', task: 'Comprobar nivel de combustible diésel en el tanque diario (mínimo 75% de capacidad).', tools: 'Medidor de nivel mecánico/eléctrico.', criteria: 'Tanque > 75% para garantizar al menos 12h de respaldo.' },
-        { freq: 'Mensual', badge: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30', task: 'Limpieza y desulfatación de bornes de batería de arranque y prueba de tensión de flote.', tools: 'Multímetro, cepillo de cobre, vaselina.', criteria: 'Voltaje de batería en reposo > 12.6V (13.6V en carga).' },
-        { freq: 'Trimestral', badge: 'bg-amber-500/15 text-amber-400 border-amber-500/30', task: 'Prueba de simulación de corte de red y conmutación automática del tablero ATS.', tools: 'Selector de prueba de transferencia con carga.', criteria: 'Arranque y transferencia a planta en menos de 10 segundos.' },
-        { freq: 'Semestral', badge: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30', task: 'Cambio de aceite de motor diésel 15W40 y sustitución de filtros de aceite y diésel.', tools: 'Aceite 15W40 API CK-4, filtros de combustible/aceite.', criteria: 'Aceite limpio, cebado sin burbujas en inyectores.' },
-        { freq: 'Anual', badge: 'bg-purple-500/15 text-purple-400 border-purple-500/30', task: 'Prueba de carga al 100% con banco de carga resistivo durante 2 horas continuas.', tools: 'Banco de carga resistivo calibrado.', criteria: 'Soporte de potencia sin caídas de frecuencia ni sobrecalentamiento.' }
-      ]
-    }
+  const expandAll = () => {
+    const all: Record<string, boolean> = {};
+    templates.forEach(t => (all[t.id] = true));
+    setExpandedPlanIds(all);
+  };
+
+  const collapseAll = () => {
+    setExpandedPlanIds({});
+  };
+
+  // Systems List for Filter
+  const systemsList = [
+    { id: 'todos', label: 'Todos los Sistemas' },
+    { id: 'Mecánico', label: 'Mecánico' },
+    { id: 'Hidráulico', label: 'Hidráulico' },
+    { id: 'Neumático', label: 'Neumático' },
+    { id: 'Eléctrico', label: 'Eléctrico' },
+    { id: 'Electrónica/PLC', label: 'Electrónica / PLC' },
+    { id: 'Chiller', label: 'Chiller' },
+    { id: 'Compresor', label: 'Compresor' },
+    { id: 'Planta Eléctrica', label: 'Planta Eléctrica' },
+    { id: 'Moldes', label: 'Moldes' }
   ];
+
+  // Filtered Templates
+  const filteredTemplates = useMemo(() => {
+    return templates.filter(t => {
+      const matchesSearch =
+        t.titulo.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        t.system.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (t.code && t.code.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (t.criterioAceptacion && t.criterioAceptacion.toLowerCase().includes(searchQuery.toLowerCase()));
+
+      const matchesSystem =
+        selectedSystem === 'todos' || t.system.toLowerCase() === selectedSystem.toLowerCase();
+
+      const matchesWorkCenter =
+        selectedWorkCenter === 'todos' || t.workCenter === selectedWorkCenter;
+
+      const matchesActivity =
+        selectedActivityType === 'todos' || t.sapActivityType === selectedActivityType;
+
+      return matchesSearch && matchesSystem && matchesWorkCenter && matchesActivity;
+    });
+  }, [templates, searchQuery, selectedSystem, selectedWorkCenter, selectedActivityType]);
+
+  const handleEdit = (tpl: PlanTemplate) => {
+    setEditingTemplate(tpl);
+    setIsModalOpen(true);
+  };
+
+  const handleNewPlan = () => {
+    setEditingTemplate(null);
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = (id: string, title: string) => {
+    if (window.confirm(`¿Confirma que desea eliminar la actividad preventiva '${title}'?`)) {
+      deletePlanTemplate(id);
+    }
+  };
 
   return (
     <div className="space-y-6">
-      <div className="p-5 rounded-2xl bg-[#151c2c] border border-slate-800">
-        <h2 className="text-base font-bold text-white tracking-wide uppercase flex items-center gap-2">
-          <Wrench className="w-5 h-5 text-cyan-400" />
-          Plan de Mantenimiento Preventivo Integral (Máquinas y Auxiliares)
-        </h2>
-        <p className="text-xs text-slate-400 mt-1">
-          Despliega cada especialidad técnica para auditar los procedimientos, herramientas, criterios de aceptación y frecuencias normadas. Puedes programar una Orden de Trabajo vinculada directamente desde cada fila.
-        </p>
+      {/* Top Header Card */}
+      <div className="p-6 rounded-2xl bg-[#151c2c] border border-slate-800 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2.5 mb-1">
+            <div className="w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
+              <Sliders className="w-5 h-5" />
+            </div>
+            <h2 className="text-base font-bold text-white tracking-wide uppercase">
+              Planes de Mantenimiento Preventivo (Estructura SAP PM)
+            </h2>
+            <span className="text-[10px] bg-amber-500/15 text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-500/30 font-bold">
+              Hojas de Ruta & Puestos de Trabajo
+            </span>
+          </div>
+          <p className="text-xs text-slate-400 max-w-2xl">
+            Ingreso y organización técnica de actividades preventivas interrelacionadas: Puesto de trabajo (Work Center), Clase de actividad (PM01-PM06), ciclo de disparo por tiempo o contadores de máquina, y lista de operaciones con criterios de aceptación ISO 9001.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2.5 shrink-0">
+          <button
+            onClick={handleNewPlan}
+            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-slate-950 font-bold text-xs shadow-lg shadow-cyan-600/20 transition-all flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            <span>+ Nueva Actividad Preventiva (SAP PM)</span>
+          </button>
+        </div>
       </div>
 
-      <div className="space-y-4">
-        {sections.map(sec => {
-          const isOpen = !!openAccordions[sec.id];
+      {/* SAP PM Quick Stats Bar */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+        <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between">
+          <div>
+            <span className="text-slate-400 block text-[11px]">Hojas de Ruta Activas</span>
+            <span className="text-xl font-bold text-cyan-400">{templates.length}</span>
+          </div>
+          <div className="w-8 h-8 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center font-bold">
+            <ClipboardList className="w-4 h-4" />
+          </div>
+        </div>
+
+        <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between">
+          <div>
+            <span className="text-slate-400 block text-[11px]">Puestos de Trabajo (WC)</span>
+            <span className="text-xl font-bold text-emerald-400">8 Puestos</span>
+          </div>
+          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold">
+            <Wrench className="w-4 h-4" />
+          </div>
+        </div>
+
+        <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between">
+          <div>
+            <span className="text-slate-400 block text-[11px]">Seguridad LOTO Estricto</span>
+            <span className="text-xl font-bold text-amber-400">
+              {templates.filter(t => t.machineCondition === 'parada_loto').length} Planes
+            </span>
+          </div>
+          <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center font-bold">
+            <ShieldCheck className="w-4 h-4" />
+          </div>
+        </div>
+
+        <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between">
+          <div>
+            <span className="text-slate-400 block text-[11px]">Planificador Resp.</span>
+            <span className="text-xs font-bold text-amber-300 block truncate">
+              Ing. Sanchez Danny
+            </span>
+          </div>
+          <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center font-bold">
+            <Cpu className="w-4 h-4" />
+          </div>
+        </div>
+      </div>
+
+      {/* Filter and Search Bar */}
+      <div className="p-4 rounded-xl bg-[#151c2c] border border-slate-800 space-y-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Buscar por código (HR-xxx), título, tarea, sistema o criterio de aceptación..."
+              className="w-full pl-9 pr-4 py-2 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={expandAll}
+              className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition-colors"
+            >
+              Expandir Todos
+            </button>
+            <button
+              onClick={collapseAll}
+              className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition-colors"
+            >
+              Colapsar
+            </button>
+          </div>
+        </div>
+
+        {/* System & Work Center Filter Pills */}
+        <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-800 text-xs">
+          <span className="text-slate-400 text-[11px] font-semibold flex items-center gap-1">
+            <Filter className="w-3.5 h-3.5 text-cyan-400" /> Sistema:
+          </span>
+          {systemsList.map(sys => (
+            <button
+              key={sys.id}
+              onClick={() => setSelectedSystem(sys.id)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
+                selectedSystem === sys.id
+                  ? 'bg-cyan-500 text-slate-950 font-bold shadow-sm'
+                  : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
+              }`}
+            >
+              {sys.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Advanced SAP Filters: Work Center & Activity Type */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 text-xs">
+          <div className="flex items-center gap-2">
+            <label className="text-slate-400 text-[11px] shrink-0 font-semibold">Puesto de Trabajo (Work Center):</label>
+            <select
+              value={selectedWorkCenter}
+              onChange={e => setSelectedWorkCenter(e.target.value)}
+              className="flex-1 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs"
+            >
+              <option value="todos">Todos los Puestos</option>
+              <option value="MEC-01">MEC-01 - Mecánica</option>
+              <option value="ELE-01">ELE-01 - Electricidad / Potencia</option>
+              <option value="HID-01">HID-01 - Hidráulica</option>
+              <option value="NEU-01">NEU-01 - Neumática</option>
+              <option value="REF-01">REF-01 - Refrigeración / Chiller</option>
+              <option value="MAT-01">MAT-01 - Matricería / Moldes</option>
+              <option value="INS-01">INS-01 - Instrumentación / PLC</option>
+              <option value="LUB-01">LUB-01 - Lubricación</option>
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <label className="text-slate-400 text-[11px] shrink-0 font-semibold">Clase de Actividad (PM Activity):</label>
+            <select
+              value={selectedActivityType}
+              onChange={e => setSelectedActivityType(e.target.value)}
+              className="flex-1 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs"
+            >
+              <option value="todos">Todas las Clases</option>
+              <option value="PM01">PM01 - Preventivo Sistemático</option>
+              <option value="PM02">PM02 - Inspección y Diagnóstico</option>
+              <option value="PM03">PM03 - Lubricación Programada</option>
+              <option value="PM04">PM04 - Calibración y Ajuste</option>
+              <option value="PM05">PM05 - Overhaul Mayor</option>
+              <option value="PM06">PM06 - Seguridad y LOTO</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Plans List / Accordions */}
+      <div className="space-y-3.5">
+        {filteredTemplates.map(tpl => {
+          const isExpanded = !!expandedPlanIds[tpl.id];
+          const hasOperations = tpl.operations && tpl.operations.length > 0;
+          const opsCount = hasOperations ? tpl.operations!.length : tpl.pasos.length;
+
           return (
             <div
-              key={sec.id}
-              className="rounded-2xl bg-[#151c2c] border border-slate-800 overflow-hidden shadow-lg transition-all"
+              key={tpl.id}
+              className={`rounded-2xl bg-[#151c2c] border transition-all shadow-md overflow-hidden ${
+                isExpanded ? 'border-cyan-500/50 shadow-cyan-500/5' : 'border-slate-800'
+              }`}
             >
-              <button
-                onClick={() => toggleAccordion(sec.id)}
-                className="w-full p-4 sm:p-5 flex items-center justify-between gap-3 text-left hover:bg-slate-800/50 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center shrink-0">
-                    {sec.icon}
+              {/* Header Bar */}
+              <div className="p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div
+                  onClick={() => toggleExpand(tpl.id)}
+                  className="flex items-start gap-3 cursor-pointer flex-1"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center shrink-0 text-cyan-400">
+                    <Wrench className="w-5 h-5" />
                   </div>
-                  <h3 className="text-sm font-bold text-white tracking-wide">{sec.title}</h3>
-                </div>
-                {isOpen ? (
-                  <ChevronUp className="w-5 h-5 text-slate-400 shrink-0" />
-                ) : (
-                  <ChevronDown className="w-5 h-5 text-slate-400 shrink-0" />
-                )}
-              </button>
 
-              {isOpen && (
-                <div className="p-4 sm:p-6 border-t border-slate-800 bg-slate-950/40 overflow-x-auto">
-                  <table className="w-full text-xs text-left min-w-[700px]">
-                    <thead>
-                      <tr className="border-b border-slate-800 text-slate-400 uppercase text-[11px] font-semibold">
-                        <th className="pb-3 w-28">Frecuencia</th>
-                        <th className="pb-3">Componente / Tarea Específica</th>
-                        <th className="pb-3 w-48">Herramienta / Insumo</th>
-                        <th className="pb-3 w-48">Criterio de Aceptación</th>
-                        <th className="pb-3 w-28 text-right">Acción</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-800/60">
-                      {sec.items.map((it, idx) => (
-                        <tr key={idx} className="hover:bg-slate-900/60 transition-colors">
-                          <td className="py-3 pr-2">
-                            <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border uppercase ${it.badge}`}>
-                              {it.freq}
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <span className="font-mono font-bold text-cyan-400 text-xs px-2 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/20">
+                        {tpl.code || `HR-${tpl.system.substring(0, 3).toUpperCase()}`}
+                      </span>
+
+                      <span className="font-mono text-[11px] font-bold text-amber-300 px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20">
+                        {tpl.workCenter || 'MEC-01'}
+                      </span>
+
+                      <span className="text-[10px] font-semibold text-slate-300 px-2 py-0.5 rounded bg-slate-800 border border-slate-700">
+                        {tpl.sapActivityType || 'PM01'}
+                      </span>
+
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                        {tpl.frecuencia}
+                      </span>
+
+                      {tpl.machineCondition === 'parada_loto' && (
+                        <span className="text-[10px] font-semibold text-rose-300 px-2 py-0.5 rounded bg-rose-500/10 border border-rose-500/20 flex items-center gap-1">
+                          <ShieldCheck className="w-3 h-3 text-rose-400" /> Parada con LOTO
+                        </span>
+                      )}
+
+                      {tpl.specificEquipmentTag && tpl.specificEquipmentTag !== 'TODOS' && (
+                        <span className="text-[10px] font-bold text-purple-300 px-2 py-0.5 rounded bg-purple-500/15 border border-purple-500/30">
+                          TAG: {tpl.specificEquipmentTag}
+                        </span>
+                      )}
+                    </div>
+
+                    <h3 className="text-sm font-bold text-white hover:text-cyan-400 transition-colors">
+                      {tpl.titulo}
+                    </h3>
+
+                    <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-2 flex-wrap">
+                      <span>Sistema: <strong className="text-slate-300">{tpl.system}</strong></span>
+                      <span>•</span>
+                      <span>Duración: <strong className="text-slate-300">{tpl.tiempo}</strong></span>
+                      <span>•</span>
+                      <span>Operaciones: <strong className="text-cyan-400">{opsCount} pasos</strong></span>
+                    </p>
+                  </div>
+                </div>
+
+                {/* Quick Action Buttons */}
+                <div className="flex items-center gap-1.5 shrink-0 self-end md:self-center">
+                  <button
+                    onClick={() => onOpenNewOtForTemplate(tpl.titulo, tpl.system)}
+                    className="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold text-xs flex items-center gap-1 transition-colors shadow-sm"
+                    title="Programar Orden de Trabajo inmediata a partir de este plan"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>+ OT</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleEdit(tpl)}
+                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
+                    title="Editar Hoja de Ruta y Parámetros SAP PM"
+                  >
+                    <Edit className="w-3.5 h-3.5" />
+                  </button>
+
+                  <button
+                    onClick={() => duplicatePlanTemplate(tpl.id)}
+                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
+                    title="Duplicar Actividad Preventiva"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                  </button>
+
+                  <button
+                    onClick={() => handleDelete(tpl.id, tpl.titulo)}
+                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition-colors"
+                    title="Eliminar Actividad"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+
+                  <button
+                    onClick={() => toggleExpand(tpl.id)}
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                  >
+                    {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Expanded Plan Details */}
+              {isExpanded && (
+                <div className="p-5 border-t border-slate-800 bg-[#0c111d] space-y-4 text-xs animate-in fade-in duration-150">
+                  {/* Operations Table */}
+                  <div>
+                    <h4 className="font-bold text-slate-200 mb-2 flex items-center gap-1.5 text-xs uppercase tracking-wider text-cyan-400">
+                      <Sliders className="w-3.5 h-3.5" /> Hoja de Ruta Normalizada (Operaciones Paso a Paso):
+                    </h4>
+
+                    <div className="border border-slate-800 rounded-xl overflow-hidden bg-slate-900/60">
+                      <table className="w-full text-left text-xs">
+                        <thead className="bg-slate-950/80 text-slate-400 uppercase text-[10px]">
+                          <tr>
+                            <th className="p-2.5 w-16 text-center">N° Op</th>
+                            <th className="p-2.5">Descripción de la Tarea / Procedimiento</th>
+                            <th className="p-2.5 w-48">Norma / Parámetro de Referencia</th>
+                            <th className="p-2.5 w-20 text-center">Tiempo</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-800/60">
+                          {hasOperations ? (
+                            tpl.operations!.map((op, oIdx) => (
+                              <tr key={oIdx} className="hover:bg-slate-800/40">
+                                <td className="p-2.5 font-mono text-center font-bold text-cyan-400">
+                                  {op.opNumber}
+                                </td>
+                                <td className="p-2.5 text-slate-200">{op.description}</td>
+                                <td className="p-2.5 font-mono text-amber-300 text-[11px]">
+                                  {op.referenceStandard || 'Conforme a manual'}
+                                </td>
+                                <td className="p-2.5 text-center text-slate-400">
+                                  {op.durationMinutes} min
+                                </td>
+                              </tr>
+                            ))
+                          ) : (
+                            tpl.pasos.map((p, pIdx) => (
+                              <tr key={pIdx} className="hover:bg-slate-800/40">
+                                <td className="p-2.5 font-mono text-center font-bold text-cyan-400">
+                                  {String((pIdx + 1) * 10).padStart(4, '0')}
+                                </td>
+                                <td className="p-2.5 text-slate-200">{p}</td>
+                                <td className="p-2.5 font-mono text-amber-300 text-[11px]">
+                                  Tolerancia estándar
+                                </td>
+                                <td className="p-2.5 text-center text-slate-400">15 min</td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* 3-Column Info: Materials/BOM, Tools (PRT), Acceptance Criteria */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                    {/* Tools (PRT) */}
+                    <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800">
+                      <strong className="text-slate-300 block mb-1.5 flex items-center gap-1.5 text-xs">
+                        <Wrench className="w-3.5 h-3.5 text-blue-400" />
+                        Herramientas (PRT):
+                      </strong>
+                      <div className="flex flex-wrap gap-1">
+                        {tpl.herramientas && tpl.herramientas.length > 0 ? (
+                          tpl.herramientas.map((h, i) => (
+                            <span key={i} className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 text-[11px]">
+                              {h}
                             </span>
-                          </td>
-                          <td className="py-3 pr-3 font-medium text-slate-200">
-                            {it.task}
-                          </td>
-                          <td className="py-3 pr-3 text-slate-400">
-                            {it.tools}
-                          </td>
-                          <td className="py-3 pr-3 text-cyan-300/90 font-mono text-[11px]">
-                            {it.criteria}
-                          </td>
-                          <td className="py-3 text-right">
-                            <button
-                              onClick={() => onOpenNewOtForTemplate(it.task, sec.title.split(' ')[1] || 'Mecánico')}
-                              className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-cyan-600 hover:text-slate-950 text-cyan-400 font-bold text-[11px] transition-colors inline-flex items-center gap-1 shrink-0"
-                              title="Generar OT para esta tarea"
-                            >
-                              <Plus className="w-3 h-3" /> OT
-                            </button>
-                          </td>
-                        </tr>
+                          ))
+                        ) : (
+                          <span className="text-slate-500 italic">Herramientas estándar</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Spare Parts (BOM) */}
+                    <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800">
+                      <strong className="text-slate-300 block mb-1.5 flex items-center gap-1.5 text-xs">
+                        <Package className="w-3.5 h-3.5 text-amber-400" />
+                        Repuestos & Insumos (BOM):
+                      </strong>
+                      <div className="space-y-1">
+                        {tpl.requiredPartsDetailed && tpl.requiredPartsDetailed.length > 0 ? (
+                          tpl.requiredPartsDetailed.map((p, i) => (
+                            <div key={i} className="flex justify-between text-[11px]">
+                              <span className="text-slate-300 font-mono text-cyan-400">[{p.partSku}] {p.partName}</span>
+                              <span className="font-bold text-amber-300">{p.quantity} {p.unit}</span>
+                            </div>
+                          ))
+                        ) : tpl.repuestos && tpl.repuestos.length > 0 ? (
+                          tpl.repuestos.map((r, i) => (
+                            <span key={i} className="inline-block mr-1 px-2 py-0.5 rounded bg-slate-800 text-slate-300 text-[11px]">
+                              {r}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-slate-500 italic">No requiere repuestos directos</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Acceptance Criteria */}
+                    <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800">
+                      <strong className="text-slate-300 block mb-1.5 flex items-center gap-1.5 text-xs">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                        Criterio de Aceptación ISO 9001:
+                      </strong>
+                      <p className="text-slate-300 font-mono text-[11px] leading-relaxed">
+                        {tpl.criterioAceptacion || 'Cero ruidos anormales, parámetros dentro del límite operativo.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Footer note: Planner Group & Safety */}
+                  <div className="pt-2 border-t border-slate-800/80 flex flex-wrap items-center justify-between text-[11px] text-slate-400 gap-2">
+                    <div className="flex items-center gap-3">
+                      <span>Grupo Planificador: <strong className="text-amber-300">{tpl.plannerGroup || 'Ingeniero Sanchez Danny'}</strong></span>
+                      <span>•</span>
+                      <span>Ventana de llamada: <strong>{tpl.toleranceDays || 3} días</strong></span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-slate-500">Permisos:</span>
+                      {(tpl.safetyPermits && tpl.safetyPermits.length > 0 ? tpl.safetyPermits : ['LOTO']).map((perm, pIdx) => (
+                        <span key={pIdx} className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 text-[10px] font-bold">
+                          {perm}
+                        </span>
                       ))}
-                    </tbody>
-                  </table>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
           );
         })}
+
+        {filteredTemplates.length === 0 && (
+          <div className="text-center py-12 rounded-2xl bg-[#151c2c] border border-slate-800">
+            <ClipboardList className="w-8 h-8 text-slate-500 mx-auto mb-2" />
+            <h4 className="text-sm font-bold text-slate-300">No se encontraron actividades preventivas</h4>
+            <p className="text-xs text-slate-500 mt-1">Prueba cambiando los filtros o crea una nueva actividad.</p>
+            <button
+              onClick={handleNewPlan}
+              className="mt-3 px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold text-xs"
+            >
+              + Crear Nueva Actividad
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* Plan Template Modal */}
+      <PlanTemplateModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        templateToEdit={editingTemplate}
+      />
     </div>
   );
 };

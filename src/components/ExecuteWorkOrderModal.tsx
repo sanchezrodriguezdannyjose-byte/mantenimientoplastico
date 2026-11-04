@@ -20,6 +20,11 @@ export const ExecuteWorkOrderModal: React.FC<ExecuteWorkOrderModalProps> = ({
     order ? order.procedureSteps.map(s => s.completed) : []
   );
   const [realHours, setRealHours] = useState<number>(order?.realDurationHours || 1.5);
+  const [downtimeHours, setDowntimeHours] = useState<number>(
+    order?.downtimeHours !== undefined
+      ? order.downtimeHours
+      : (order?.type === 'Correctivo' || order?.priority === 'Critica' ? 2.0 : 0)
+  );
   const [observations, setObservations] = useState<string>(order?.observations || '');
   const [technicianSig, setTechnicianSig] = useState<string>(order?.assignedTechnician || '');
   const [supervisorSig, setSupervisorSig] = useState<string>(order?.verifierSupervisor || '');
@@ -67,7 +72,8 @@ export const ExecuteWorkOrderModal: React.FC<ExecuteWorkOrderModalProps> = ({
       observations,
       technicianSig,
       supervisorSig,
-      consumedParts
+      consumedParts,
+      downtimeHours
     );
     onClose();
   };
@@ -218,11 +224,11 @@ export const ExecuteWorkOrderModal: React.FC<ExecuteWorkOrderModalProps> = ({
           </div>
 
           {/* Time & Observations */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
             <div>
               <label className="block text-slate-300 font-semibold mb-1 flex items-center gap-1">
                 <Clock className="w-3.5 h-3.5 text-cyan-400" />
-                Tiempo Real Invertido (Horas) *
+                Tiempo de Mano de Obra (Horas) *
               </label>
               <input
                 type="number"
@@ -231,14 +237,30 @@ export const ExecuteWorkOrderModal: React.FC<ExecuteWorkOrderModalProps> = ({
                 value={realHours}
                 onChange={e => setRealHours(parseFloat(e.target.value) || 0)}
                 required
-                className="w-full p-2.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 font-semibold"
+                className="w-full p-2.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 font-semibold font-mono"
+              />
+            </div>
+
+            <div>
+              <label className="block text-slate-300 font-semibold mb-1 flex items-center gap-1">
+                <Clock className="w-3.5 h-3.5 text-rose-400" />
+                Tiempo de Parada Máquina (Horas)
+              </label>
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                value={downtimeHours}
+                onChange={e => setDowntimeHours(parseFloat(e.target.value) || 0)}
+                className="w-full p-2.5 rounded-lg bg-slate-900 border border-slate-700 text-rose-300 font-semibold font-mono"
+                title="Horas que la máquina estuvo detenida por esta intervención"
               />
             </div>
 
             <div>
               <label className="block text-slate-300 font-semibold mb-1 flex items-center gap-1">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                Firma / Nombre del Supervisor
+                Firma / Supervisor *
               </label>
               <input
                 type="text"

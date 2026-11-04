@@ -33,8 +33,30 @@ export interface Equipment {
 
 export type FrequencyType = 'Diario' | 'Semanal' | 'Mensual' | 'Trimestral' | 'Semestral' | 'Anual';
 
+export type SapWorkCenter = 'MEC-01' | 'ELE-01' | 'HID-01' | 'NEU-01' | 'REF-01' | 'MAT-01' | 'LUB-01' | 'INS-01';
+export type SapActivityType = 'PM01' | 'PM02' | 'PM03' | 'PM04' | 'PM05' | 'PM06';
+export type SapTriggerStrategy = 'tiempo' | 'contador_horas' | 'contador_ciclos';
+export type MachineCondition = 'parada_loto' | 'en_marcha' | 'indiferente';
+
+export interface SapOperation {
+  opNumber: string; // ej. 0010, 0020
+  description: string;
+  durationMinutes: number;
+  workCenter?: string;
+  referenceStandard?: string;
+}
+
+export interface SapRequiredPart {
+  partId?: string;
+  partSku: string;
+  partName: string;
+  quantity: number;
+  unit: string;
+}
+
 export interface PlanTemplate {
   id: string;
+  code?: string; // ej. HR-INY-001, PM-CHL-002 (Hoja de Ruta / Plan SAP PM)
   system: string;
   titulo: string;
   frecuencia: FrequencyType;
@@ -47,6 +69,20 @@ export interface PlanTemplate {
   pasos: string[];
   criterioAceptacion?: string;
   applicableEquipmentTypes: EquipmentType[];
+
+  // Variables avanzadas modelo SAP PM (Plant Maintenance)
+  workCenter?: SapWorkCenter; // Puesto de trabajo responsable (MEC-01, ELE-01, etc.)
+  sapActivityType?: SapActivityType; // PM01 (Preventivo), PM02 (Inspección), etc.
+  strategyType?: SapTriggerStrategy; // Por tiempo, contador de horas o ciclos
+  counterInterval?: number; // ej. cada 500 horas o 100,000 ciclos
+  machineCondition?: MachineCondition; // Parada con LOTO vs En Operación
+  safetyPermits?: string[]; // LOTO, Eléctrico, Altura, Químico
+  operations?: SapOperation[]; // Operaciones estructuradas con numeración SAP
+  requiredPartsDetailed?: SapRequiredPart[]; // Repuestos vinculados con cantidades reservadas
+  plannerGroup?: string; // Grupo planificador (ej. Ing. Sanchez Danny)
+  toleranceDays?: number; // Tolerancia / horizonte de llamada (días)
+  specificEquipmentTag?: string; // TAG específico (ej. INY-01) o 'TODOS'
+  activeStatus?: boolean; // Estado activo en el plan maestro
 }
 
 export type WorkOrderStatus = 'Pendiente' | 'En_Proceso' | 'Completada' | 'Cancelada';
@@ -83,6 +119,7 @@ export interface WorkOrder {
   frequency: FrequencyType;
   estimatedTime: string;
   realDurationHours?: number;
+  downtimeHours?: number; // Horas reales de parada de máquina
   assignedTechnician: string;
   verifierSupervisor: string;
   plantManager?: string;
@@ -192,4 +229,9 @@ export interface PlantKPIs {
   equiposOperativos: number;
   equiposEnMantenimiento: number;
   equiposParados: number;
+  tiempoTotalParadaHoras: number; // Horas totales acumuladas de parada por averías/intervenciones
+  tiempoTotalReparacionHoras: number; // Horas hombre reales invertidas en ejecución de mantenimientos
+  costoTotalRepuestos: number; // Costo monetario total de repuestos consumidos en OTs
+  ratioPreventivoCorrectivo: number; // % de OTs preventivas sobre el total
+  horasHombreTotal: number; // Total acumulado de horas técnicas
 }
