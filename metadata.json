@@ -1,0 +1,6 @@
+{
+  "name": "SGMI - Mantenimiento Integral de Planta",
+  "description": "Sistema de Gestión de Mantenimiento Integral interrelacionado para plantas de inyección, soplado y servicios auxiliares (Chiller, Compresor, Planta Eléctrica). Registro en tiempo real, OTs ISO 9001, trazabilidad de moldes e inventario.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
