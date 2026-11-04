@@ -307,11 +307,15 @@ export const OrdenesTrabajoView: React.FC<OrdenesTrabajoViewProps> = ({ onOpenNe
                   <div>
                     <h2>Planta de Producción Plástica Industrial</h2>
                     <p>Sistema de Gestión de la Calidad ISO 9001:2015 | Mantenimiento</p>
+                    <p style={{ fontSize: '9px', fontWeight: 'bold', color: '#b45309', marginTop: '2px' }}>
+                      Sistema elaborado por el Ingeniero Sanchez Danny
+                    </p>
                   </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <h2>ORDEN DE TRABAJO</h2>
                   <p>Código: F-MT-01 | Versión: 01</p>
+                  <p style={{ fontSize: '8px', color: '#555' }}>Ing. Sanchez Danny</p>
                 </div>
               </div>
 
@@ -414,6 +418,10 @@ export const OrdenesTrabajoView: React.FC<OrdenesTrabajoViewProps> = ({ onOpenNe
                   <span>Aprobación y entrega a Producción</span>
                 </div>
               </div>
+
+              <div style={{ textAlign: 'center', fontSize: '8.5px', color: '#555', marginTop: '6px', borderTop: '1px solid #ddd', paddingTop: '4px' }}>
+                SGMI • Sistema elaborado por el Ingeniero Sanchez Danny • Formato Oficial F-MT-01 Rev.01 • ISO 9001:2015
+              </div>
             </div>
           );
         })}
@@ -457,11 +465,15 @@ export const OrdenesTrabajoView: React.FC<OrdenesTrabajoViewProps> = ({ onOpenNe
                   <div>
                     <h2>Planta de Producción Plástica Industrial</h2>
                     <p>Sistema de Gestión de la Calidad ISO 9001:2015</p>
+                    <p style={{ fontSize: '9px', fontWeight: 'bold', color: '#b45309', marginTop: '2px' }}>
+                      Sistema elaborado por el Ingeniero Sanchez Danny
+                    </p>
                   </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <h2>ORDEN DE TRABAJO</h2>
                   <p>Código: F-MT-01 | Versión: 01</p>
+                  <p style={{ fontSize: '8px', color: '#555' }}>Ing. Sanchez Danny</p>
                 </div>
               </div>
 
@@ -557,6 +569,10 @@ export const OrdenesTrabajoView: React.FC<OrdenesTrabajoViewProps> = ({ onOpenNe
                   <strong>Jefe de Planta</strong>
                   <span>Aprobador</span>
                 </div>
+              </div>
+
+              <div style={{ textAlign: 'center', fontSize: '8.5px', color: '#555', marginTop: '6px', borderTop: '1px solid #ddd', paddingTop: '4px' }}>
+                SGMI • Sistema elaborado por el Ingeniero Sanchez Danny • Formato Oficial F-MT-01 Rev.01 • ISO 9001:2015
               </div>
             </div>
           </div>

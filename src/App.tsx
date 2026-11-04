@@ -123,6 +123,23 @@ const MainContent: React.FC = () => {
         )}
       </main>
 
+      {/* App Footer */}
+      <footer className="border-t border-slate-800/80 bg-[#090d16] py-5 px-4 sm:px-8 text-xs text-slate-400 no-print mt-auto">
+        <div className="max-w-[1500px] mx-auto flex flex-col md:flex-row items-center justify-between gap-3 text-center md:text-left">
+          <div className="flex items-center gap-2 text-slate-300 font-medium text-xs">
+            <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <span>Gestión de Mantenimiento Integral (SGMI) • Inyección, Soplado y Auxiliares</span>
+          </div>
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-300 font-bold text-xs shadow-sm">
+            <i className="fa-solid fa-user-check text-amber-400"></i>
+            <span>Sistema elaborado por el Ingeniero Sanchez Danny</span>
+          </div>
+          <div className="text-[11px] text-slate-500">
+            Norma ISO 9001:2015 • Formato F-MT-01 Rev.01 • Registro Continuo
+          </div>
+        </div>
+      </footer>
+
       {/* Modals */}
       <BackupModal isOpen={isBackupOpen} onClose={() => setIsBackupOpen(false)} />
 

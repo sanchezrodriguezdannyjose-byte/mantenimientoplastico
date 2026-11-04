@@ -56,7 +56,7 @@ export const Header: React.FC<HeaderProps> = ({
             <i className="fa-solid fa-gears text-xl"></i>
           </div>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-base lg:text-lg font-bold text-white tracking-wide">
                 Gestión de Mantenimiento Integral (SGMI)
               </h1>
@@ -64,8 +64,12 @@ export const Header: React.FC<HeaderProps> = ({
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                 En Línea | Auto-guardado
               </span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 shadow-xs">
+                <i className="fa-solid fa-user-check text-amber-400 text-[10px]"></i>
+                Sistema elaborado por el Ingeniero Sanchez Danny
+              </span>
             </div>
-            <p className="text-xs text-cyan-400 font-medium flex items-center gap-1.5">
+            <p className="text-xs text-cyan-400 font-medium flex items-center gap-1.5 flex-wrap">
               <span>Inyección, Soplado y Auxiliares</span>
               <span className="text-slate-600">•</span>
               <span className="text-slate-400">Chiller, Compresor, Planta Eléctrica y Moldes</span>

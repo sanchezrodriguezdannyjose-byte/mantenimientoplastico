@@ -160,11 +160,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onExecuteOt, onOpe
         {/* Objectives */}
         <div className="p-6 rounded-2xl bg-[#151c2c] border border-slate-800 flex flex-col justify-between">
           <div>
-            <div className="flex items-center gap-3 pb-3 border-b border-slate-800 mb-4">
-              <i className="fa-solid fa-bullseye text-cyan-400 text-xl"></i>
-              <h2 className="text-base font-bold text-white uppercase tracking-wider">
-                Objetivos del Programa Interrelacionado
-              </h2>
+            <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-800 mb-4 flex-wrap">
+              <div className="flex items-center gap-3">
+                <i className="fa-solid fa-bullseye text-cyan-400 text-xl"></i>
+                <h2 className="text-base font-bold text-white uppercase tracking-wider">
+                  Objetivos del Programa Interrelacionado
+                </h2>
+              </div>
+              <span className="text-[11px] font-semibold text-amber-300 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20 flex items-center gap-1.5">
+                <i className="fa-solid fa-user-check text-amber-400"></i>
+                Elaborado por el Ing. Sanchez Danny
+              </span>
             </div>
 
             <div className="p-4 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-200 text-xs mb-4">
